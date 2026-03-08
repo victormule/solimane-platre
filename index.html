@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Abounaddara-CNRS-2026</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=Cinzel:wght@400;600&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      width: 100vw; height: 100vh;
+      max-width: 100%;
+      overflow: hidden;
+      background: #000;
+      font-family: 'Cormorant Garamond', serif;
+      cursor: none;
+    }
+
+    #overlay-canvas {
+      position: fixed; inset: 0;
+      z-index: 10; pointer-events: none;
+    }
+
+    #cursor {
+      position: fixed; left: 50%; top: 50%;
+      width: 5px; height: 5px; border-radius: 50%;
+      background: rgba(255,248,220,0.38);
+      transform: translate(-50%,-50%);
+      pointer-events: none; z-index: 30;
+      transition: width .22s ease, height .22s ease, background .22s ease,
+                  box-shadow .22s ease, opacity .22s ease;
+    }
+    #cursor.active {
+      width: 14px; height: 14px;
+      background: rgba(255,220,120,0.92);
+      box-shadow: 0 0 0 4px rgba(255,220,120,0.22),
+                  0 0 18px rgba(255,200,80,0.6),
+                  0 0 36px rgba(255,170,40,0.3);
+      animation: cursor-pulse 0.9s ease-in-out infinite;
+    }
+    @keyframes cursor-pulse {
+      0%   { transform: translate(-50%,-50%) scale(1);   box-shadow: 0 0 0 4px rgba(255,220,120,0.22), 0 0 18px rgba(255,200,80,0.6),  0 0 36px rgba(255,170,40,0.3); }
+      50%  { transform: translate(-50%,-50%) scale(1.55); box-shadow: 0 0 0 10px rgba(255,220,120,0.08), 0 0 30px rgba(255,200,80,0.45), 0 0 60px rgba(255,170,40,0.18); }
+      100% { transform: translate(-50%,-50%) scale(1);   box-shadow: 0 0 0 4px rgba(255,220,120,0.22), 0 0 18px rgba(255,200,80,0.6),  0 0 36px rgba(255,170,40,0.3); }
+    }
+
+    .scene {
+      position: fixed; inset: 0;
+      width: 100vw; height: 100vh;
+      overflow: hidden; z-index: 0;
+    }
+    #bgVideo {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      object-fit: contain; object-position: center center;
+      padding: 2vh 2vw;
+      filter: brightness(0.88) contrast(1.04);
+    }
+
+    .grain {
+      position: fixed; inset: 0;
+      pointer-events: none; z-index: 11; opacity: 0.032;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+      background-size: 200px 200px;
+      animation: grain 0.5s steps(1) infinite;
+    }
+    @keyframes grain {
+      0%,100%{background-position:0 0} 10%{background-position:-5% -10%}
+      20%{background-position:-15% 5%} 30%{background-position:7% -25%}
+      40%{background-position:-5% 25%} 50%{background-position:-15% 10%}
+      60%{background-position:15% 0}   70%{background-position:0 15%}
+      80%{background-position:3% 35%}  90%{background-position:-10% 10%}
+    }
+
+    #site-title {
+      position: fixed; top: 3.2vh; left: 3.5vw;
+      z-index: 25; pointer-events: none;
+      font-family: 'Cinzel', serif;
+      font-size: clamp(0.6rem, 1.2vw, 0.92rem);
+      font-weight: 400; letter-spacing: 0.32em; text-transform: uppercase;
+      color: rgba(210,175,90,0);
+    }
+    #site-title .char {
+      display: inline-block; opacity: 0; transform: translateY(6px);
+      transition: opacity 0.7s ease, transform 0.7s ease;
+    }
+    #site-title .sep {
+      display: inline-block; opacity: 0; margin: 0 0.4em;
+      transition: opacity 0.8s ease;
+    }
+
+    .subtitle {
+      position: fixed; z-index: 20;
+      color: #fff; font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(15px, 1.9vw, 30px); font-style: italic; font-weight: 300;
+      letter-spacing: 0.03em; line-height: 1.9; text-align: left;
+      max-width: 44ch; white-space: pre-wrap; opacity: 0;
+      transition: opacity 0.75s ease; pointer-events: none;
+      text-shadow: 0 0 24px rgba(0,0,0,1), 0 0 10px rgba(0,0,0,.95), 0 2px 5px rgba(0,0,0,.85);
+    }
+    #subtitle-1 { left: 5vw;  bottom: 9vh; }
+    #subtitle-2 { right: 5vw; top: 9vh; text-align: right; }
+    #subtitle-3 { left: 58vw; top: 62vh; max-width: 36ch; }
+    #subtitle-4 { left: 5vw;  top: 38vh; max-width: 40ch; }
+
+    .hotspot {
+      position: absolute; border-radius: 50%;
+      cursor: none; z-index: 5;
+    }
+    .hotspot .label {
+      position: absolute; bottom: -30px; left: 50%;
+      transform: translateX(-50%); white-space: nowrap;
+      font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 12px;
+      color: rgba(255,235,180,0.9); opacity: 0;
+      transition: opacity 0.3s ease; pointer-events: none; letter-spacing: 0.06em;
+    }
+    .hotspot:hover .label { opacity: 1; }
+
+    #face-L2-3 { left: 22%; top: 34%; width: 13%; height: 30%; }
+    #face-L2-6 { left: 33%; top: 34%; width: 13%; height: 30%; }
+
+    /* ── CARTELS — positionnés sous les visages ── */
+    .face-cartel {
+      position: fixed; z-index: 15;
+      pointer-events: none; opacity: 0;
+      transition: opacity 0.5s ease;
+    }
+    .face-cartel.visible { opacity: 1; }
+    .face-cartel svg { display: block; overflow: visible; }
+
+    .cartel-path {
+      fill: none; stroke: rgba(255,255,255,0.82); stroke-width: 0.7;
+      stroke-dasharray: 800; stroke-dashoffset: 800;
+      transition: stroke-dashoffset 0.75s cubic-bezier(0.4,0,0.2,1);
+    }
+    .face-cartel.visible .cartel-path { stroke-dashoffset: 0; }
+
+    .cartel-title {
+      fill: #fff; font-family: 'Helvetica Neue', Arial, sans-serif;
+      font-size: 13px; font-weight: 300; letter-spacing: 0.22em; text-transform: uppercase;
+      opacity: 0; transition: opacity 0.4s ease 0.6s;
+    }
+    .face-cartel.visible .cartel-title { opacity: 1; }
+
+    .cartel-body {
+      fill: rgba(255,255,255,0.58); font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 11px; font-style: italic; letter-spacing: 0.05em;
+      opacity: 0; transition: opacity 0.4s ease 0.82s;
+    }
+    .face-cartel.visible .cartel-body { opacity: 1; }
+
+    #start-screen {
+      position: fixed; inset: 0; z-index: 50;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 28px;
+      background: #000; cursor: pointer;
+    }
+    #start-screen .sound-notice {
+      color: rgba(255,255,255,.22); font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(11px, 1.1vw, 14px); font-style: italic;
+      letter-spacing: .18em; text-align: center;
+    }
+    #start-screen .sound-notice span {
+      display: block; margin-top: 4px;
+      color: rgba(255,220,120,.28); font-size: clamp(9px,.9vw,11px);
+      font-style: normal; letter-spacing: .28em; text-transform: uppercase;
+    }
+    #start-screen p {
+      color: rgba(255,255,255,.38); font-family: 'Cinzel', serif;
+      font-size: .75rem; letter-spacing: .32em; text-transform: uppercase;
+      animation: pulse 3s ease-in-out infinite;
+    }
+
+    #hint {
+      position: fixed; bottom: 26px; left: 50%;
+      transform: translateX(-50%); font-size: 10px; letter-spacing: 0.3em;
+      color: rgba(255,255,255,0); text-transform: uppercase;
+      font-family: 'Cinzel', serif; z-index: 25; pointer-events: none;
+      transition: color 3s ease;
+    }
+    #hint.visible { color: rgba(255,255,255,0.35); }
+
+    @keyframes pulse { 0%,100%{opacity:.2} 50%{opacity:.7} }
+  </style>
+</head>
+<body>
+
+<canvas id="overlay-canvas"></canvas>
+<div id="cursor"></div>
+<div class="grain"></div>
+<div id="site-title"></div>
+
+<div class="subtitle" id="subtitle-1"></div>
+<div class="subtitle" id="subtitle-2"></div>
+<div class="subtitle" id="subtitle-3"></div>
+<div class="subtitle" id="subtitle-4"></div>
+
+<div class="scene">
+  <video id="bgVideo" preload="auto" playsinline>
+    <source src="Soliman.mp4" type="video/mp4">
+  </video>
+  <div class="hotspot" id="face-L2-3" data-start="3" data-end="20" data-name="Caleb">
+    <span class="label">Caleb</span>
+  </div>
+  <div class="hotspot" id="face-L2-6" data-start="20" data-end="36" data-name="La fillette">
+    <span class="label">La fillette</span>
+  </div>
+</div>
+
+<!-- Cartel Caleb -->
+<div class="face-cartel" id="cartel-caleb">
+  <svg viewBox="0 0 200 125" width="220" height="138">
+    <path class="cartel-path" d="M 100 0 L 100 22 L 10 22 L 10 115 L 190 115 L 190 22 L 100 22"/>
+    <text class="cartel-title" x="22" y="43">Caleb</text>
+    <text class="cartel-body"  x="22" y="63">Témoin, Alep — 2013</text>
+    <text class="cartel-body"  x="22" y="79">Archives Abounaddara</text>
+    <text class="cartel-body"  x="22" y="95">CNRS — 2026</text>
+  </svg>
+</div>
+
+<!-- Cartel La fillette -->
+<div class="face-cartel" id="cartel-fillette">
+  <svg viewBox="0 0 200 125" width="220" height="138">
+    <path class="cartel-path" d="M 100 0 L 100 22 L 10 22 L 10 115 L 190 115 L 190 22 L 100 22"/>
+    <text class="cartel-title" x="22" y="43">La fillette</text>
+    <text class="cartel-body"  x="22" y="63">Identité inconnue — 2014</text>
+    <text class="cartel-body"  x="22" y="79">Archives Abounaddara</text>
+    <text class="cartel-body"  x="22" y="95">CNRS — 2026</text>
+  </svg>
+</div>
+
+<div id="hint">Déplacez la lumière — Cliquez sur un visage</div>
+<div id="start-screen">
+  <div class="sound-notice">
+    Cette expérience est bien meilleure avec le son
+    <span>&#9834; &nbsp; casque recommandé</span>
+  </div>
+  <p>cliquez pour commencer</p>
+</div>
+
+<!-- Sons narratifs -->
+<audio id="snd-perturbe" src="perturbe.mp3" preload="auto"></audio>
+<audio id="snd-candice"  src="Candice2.mp3" preload="auto"></audio>
+<audio id="snd-delicat"  src="delicat.mp3"  preload="auto"></audio>
+<audio id="snd-pratique" src="pratique.mp3" preload="auto"></audio>
+
+<script>
+/* ╔══════════════════════════════════════════════════════════════╗
+   ║                  ★  CONFIGURATION  ★                        ║
+   ║  Toutes les variables réglables sont ici, dans ce bloc.      ║
+   ║  Modifiez uniquement cette section — ne touchez pas au reste.║
+   ╚══════════════════════════════════════════════════════════════╝ */
+
+const CONFIG = {
+
+  /* ╔══════════════════════════════════════════════════════╗
+     ║  1. VOLUMES  (0.0 = silence  →  1.0 = plein volume)  ║
+     ╚══════════════════════════════════════════════════════╝ */
+
+  VOL_PUBLIC:         0.62,  // bruit de fond en boucle permanente
+  VOL_WHISPER:        0.14,  // chuchotement ponctuel
+  VOL_PERTURBE:       1.0,   // 1er témoignage narratif
+  VOL_CANDICE:        1.0,   // 2e témoignage narratif
+  VOL_DELICAT:        1.0,   // 3e témoignage narratif
+  VOL_PRATIQUE:       1.0,   // 4e témoignage narratif
+  VOL_VIDEO:          0.18,  // volume interne de la vidéo interactive
+  VOL_DUCK_AMBIENT:   0.08,  // fond quand une vidéo joue (ducking)
+  VOL_DUCK_NARR:      0.08,  // narratifs si la vidéo joue par-dessus (ducking fort)
+
+  /* ╔══════════════════════════════════════════════════════╗
+     ║  2. FONDUS  (millisecondes)                          ║
+     ╚══════════════════════════════════════════════════════╝ */
+
+  FADE_PUBLIC_IN:     3500,  // montée du fond au démarrage
+  FADE_DUCK_DOWN:     1000,  // descente lors d'un clic vidéo
+  FADE_DUCK_UP:       1400,  // remontée quand la vidéo se termine
+  FADE_NARR_IN:        800,  // entrée de chaque voix narrative
+  FADE_NARR_OUT:      1400,  // sortie de chaque voix narrative
+  FADE_VIDEO_IN:       600,  // fondu d'entrée du volume vidéo au clic
+  FADE_VIDEO_OUT:      800,  // fondu de sortie du volume vidéo à la fin
+
+  /* ╔══════════════════════════════════════════════════════╗
+     ║  3. CHUCHOTEMENT  (millisecondes)                    ║
+     ╚══════════════════════════════════════════════════════╝ */
+
+  WHISPER_FIRST:      30000, // délai avant le tout premier chuchotement
+  WHISPER_MIN:        35000, // intervalle minimum entre deux occurrences
+  WHISPER_MAX:        70000, // intervalle maximum entre deux occurrences
+  WHISPER_FADE_IN:     1800, // durée du fade in
+  WHISPER_FADE_OUT:    2200, // durée du fade out (avant fin du fichier)
+
+  /* ╔══════════════════════════════════════════════════════╗
+     ║  4. TORCHE                                           ║
+     ╚══════════════════════════════════════════════════════╝ */
+
+  TORCH_RADIUS:        160,  // rayon final en pixels
+  TORCH_GROW_DURATION: 26000,// durée pour atteindre ce rayon (ms)
+                             // — plus grand = croissance plus lente
+  TORCH_FOLLOW_SPEED:  0.068,// réactivité souris : 0.01 lent → 0.15 rapide
+  TORCH_HINT_DELAY:    12000,// délai après début de croissance → affiche hint
+
+  /* ╔══════════════════════════════════════════════════════╗
+     ║  5. VIDÉO INTERACTIVE                                ║
+     ╚══════════════════════════════════════════════════════╝ */
+
+  VIDEO_BRIGHTNESS:    0.88, // luminosité de la vidéo  (1.0 = normal)
+  VIDEO_CONTRAST:      1.04, // contraste de la vidéo   (1.0 = normal)
+  VIDEO_PADDING_H:     '2vh',// padding vertical autour de la vidéo
+  VIDEO_PADDING_V:     '2vw',// padding horizontal autour de la vidéo
+  VIDEO_STOP_DELAY:     800, // délai (ms) avant reset après fin ou stop
+
+  /* ╔══════════════════════════════════════════════════════╗
+     ║  6. GRAIN CINÉMATIQUE                                ║
+     ╚══════════════════════════════════════════════════════╝ */
+
+  GRAIN_OPACITY:       0.052, // intensité du grain  (0 = off, 0.08 = fort)
+  GRAIN_SIZE:          '200px 200px', // taille des tuiles de grain
+  GRAIN_SPEED:         '0.5s',        // vitesse d'animation du grain
+
+  /* ╔══════════════════════════════════════════════════════╗
+     ║  7. CURSEUR PULSANT                                  ║
+     ╚══════════════════════════════════════════════════════╝ */
+
+  CURSOR_REST_SIZE:    '5px',  // taille au repos
+  CURSOR_PULSE_SIZE:   '14px', // taille en pulsation (sur visage actif)
+  CURSOR_PULSE_SCALE:   1.75,  // amplitude de la pulsation (scale max)
+  CURSOR_PULSE_SPEED:  '0.9s', // durée d'un cycle de pulsation
+
+  /* ╔══════════════════════════════════════════════════════╗
+     ║  8. SOUS-TITRES                                      ║
+     ╚══════════════════════════════════════════════════════╝ */
+
+  // Taille de police — format clamp(min, valeur_responsive, max)
+  SUBTITLE_FONT:       'clamp(15px, 1.9vw, 30px)',
+  SUBTITLE_LINE_HEIGHT: '1.7',  // interligne
+  SUBTITLE_MAX_WIDTH:  '44ch',  // largeur max des sous-titres 1 et 2
+  SUBTITLE_MAX_WIDTH_3: '36ch', // largeur max du sous-titre 3
+  SUBTITLE_FADE:       '0.75s', // durée du fondu d'entrée/sortie
+
+  // Textes des trois témoignages (modifier librement)
+  SUBTITLE_TEXT_1:
+    "Je ne sais pas pourquoi.. ça m'a...\n" +
+    "ça m'a autant perturbé.\n" +
+    "Mais je sais que ça m'a perturbé.",
+
+  SUBTITLE_TEXT_2:
+    "Voilà. Ce qui s'est passé à cette époque là,\n" +
+    "ça nous concerne pas...\n" +
+    "Enfin, si...\n" +
+    "Ça nous concerne.\n" +
+    "Ça nous concerne, c'est notre histoire.",
+
+  SUBTITLE_TEXT_3:
+    "Tout était aussi délicat..\n" +
+    "un peu sensible à traiter.\n" +
+    "Que vraiment le choix des mots était important.",
+
+  SUBTITLE_TEXT_4:
+    "Ça nécessite de constamment faire\n" +
+    "un travail de réflexivité.\n" +
+    "Et j'ai aussi l'impression qu'il y a\n" +
+    "une forte volonté et un fort besoin\n" +
+    "de vérité, d'honnêteté\n" +
+    "et de sincérité dans les pratiques.",
+
+  // Durées d'affichage avant disparition (ms, après fin du typing)
+  SUBTITLE_HOLD_1:     3000,
+  SUBTITLE_HOLD_2:     3500,
+  SUBTITLE_HOLD_3:     3600,
+  SUBTITLE_HOLD_4:     4000,
+
+  /* ╔══════════════════════════════════════════════════════╗
+     ║  9. TYPING — vitesse de frappe des sous-titres       ║
+     ╚══════════════════════════════════════════════════════╝ */
+
+  TYPING_SPEED:        1.4,  // 1.0 = normal, 0.5 = lent, 2.0 = rapide
+
+  /* ╔══════════════════════════════════════════════════════╗
+     ║  10. TITRE HAUT GAUCHE                               ║
+     ╚══════════════════════════════════════════════════════╝ */
+
+  TITLE_TEXT:          'Abounaddara — CNRS — 2026', // texte du titre
+                       // (les — seront animés séparément)
+  TITLE_FONT:          'clamp(0.6rem, 1.2vw, 0.92rem)', // taille police
+  TITLE_COLOR:         'rgba(210,175,90,1)',   // couleur dorée
+  TITLE_GLOW:          'rgba(210,160,50,0.25)',// couleur du halo
+  TITLE_CHAR_DELAY:     55,  // délai entre chaque lettre (ms)
+  TITLE_INITIAL_DELAY:  800, // délai avant la première lettre (ms)
+
+  /* ╔══════════════════════════════════════════════════════╗
+     ║  11. CARTELS DES VISAGES                             ║
+     ╚══════════════════════════════════════════════════════╝ */
+
+  CARTEL_FONT_TITLE:   13,   // taille titre cartel (px)
+  CARTEL_FONT_BODY:    11,   // taille corps cartel (px)
+  CARTEL_OFFSET_Y:     20,   // décalage vertical sous le bas du visage (px)
+  CARTEL_WIDTH:        220,  // largeur du SVG cartel (px)
+  CARTEL_STROKE_COLOR: 'rgba(255,255,255,0.82)', // couleur du trait SVG
+  CARTEL_STROKE_WIDTH: 0.7,  // épaisseur du trait SVG
+  CARTEL_DRAW_SPEED:  '0.75s',// durée du dessin de la ligne SVG
+  CARTEL_FADE_SPEED:  '0.5s', // fondu d'entrée/sortie du cartel
+
+  /* ╔══════════════════════════════════════════════════════╗
+     ║  12. LABELS AU SURVOL DES HOTSPOTS                   ║
+     ╚══════════════════════════════════════════════════════╝ */
+
+  LABEL_FONT_SIZE:     '12px',             // taille du label
+  LABEL_COLOR:         'rgba(255,235,180,0.9)', // couleur du label
+  LABEL_OFFSET_Y:      '-30px',            // décalage sous le hotspot
+
+  /* ╔══════════════════════════════════════════════════════╗
+     ║  13. ÉCRAN DE DÉMARRAGE                              ║
+     ╚══════════════════════════════════════════════════════╝ */
+
+  START_NOTICE_TEXT:   'Cette expérience est bien meilleure avec le son',
+  START_NOTICE_SUB:    '♪  casque recommandé',
+  START_CTA_TEXT:      'cliquez pour commencer',
+
+  /* ╔══════════════════════════════════════════════════════╗
+     ║  14. HINT BAS DE PAGE                                ║
+     ╚══════════════════════════════════════════════════════╝ */
+
+  HINT_TEXT:           'Déplacez la lumière — Cliquez sur un visage',
+  HINT_FONT_SIZE:      '10px',
+  HINT_COLOR:          'rgba(255,255,255,0.35)',
+  HINT_FADE:           '3s',   // durée du fondu d'apparition
+
+  /* ╔══════════════════════════════════════════════════════╗
+     ║  15. SÉQUENCE — silences entre les voix (ms)         ║
+     ╚══════════════════════════════════════════════════════╝ */
+
+  SILENCE_BEFORE_SEQ:   7000, // silence avant le 1er témoignage
+  SILENCE_BETWEEN_1_2:  2600, // silence entre perturbe et candice
+  SILENCE_BETWEEN_2_3:  1800, // silence entre candice et delicat
+  SILENCE_BETWEEN_3_4:  2200, // silence entre delicat et pratique
+
+};
+/* ══════════════════════════════════════════════════════════════
+   FIN DE LA CONFIGURATION — ne pas modifier en dessous
+   ══════════════════════════════════════════════════════════════ */
+
+
+/* ── Application de toutes les variables CSS dynamiques ── */
+(function applyConfig(){
+  // Sous-titres
+  document.querySelectorAll('.subtitle').forEach(el=>{
+    el.style.fontSize   = CONFIG.SUBTITLE_FONT;
+    el.style.lineHeight = CONFIG.SUBTITLE_LINE_HEIGHT;
+    el.style.transition = `opacity ${CONFIG.SUBTITLE_FADE} ease`;
+  });
+  document.getElementById('subtitle-1').style.maxWidth = CONFIG.SUBTITLE_MAX_WIDTH;
+  document.getElementById('subtitle-2').style.maxWidth = CONFIG.SUBTITLE_MAX_WIDTH;
+  document.getElementById('subtitle-3').style.maxWidth = CONFIG.SUBTITLE_MAX_WIDTH_3;
+  document.getElementById('subtitle-4').style.maxWidth = CONFIG.SUBTITLE_MAX_WIDTH;
+
+  // Titre
+  const titleEl = document.getElementById('site-title');
+  titleEl.style.fontSize = CONFIG.TITLE_FONT;
+
+  // Cartels
+  document.querySelectorAll('.cartel-title').forEach(el=>el.setAttribute('font-size', CONFIG.CARTEL_FONT_TITLE));
+  document.querySelectorAll('.cartel-body').forEach(el =>el.setAttribute('font-size', CONFIG.CARTEL_FONT_BODY));
+  document.querySelectorAll('.cartel-path').forEach(el=>{
+    el.style.stroke      = CONFIG.CARTEL_STROKE_COLOR;
+    el.style.strokeWidth = CONFIG.CARTEL_STROKE_WIDTH;
+    el.style.transition  = `stroke-dashoffset ${CONFIG.CARTEL_DRAW_SPEED} cubic-bezier(0.4,0,0.2,1)`;
+  });
+  document.querySelectorAll('.face-cartel').forEach(el=>{
+    el.style.transition = `opacity ${CONFIG.CARTEL_FADE_SPEED} ease`;
+    el.style.width      = CONFIG.CARTEL_WIDTH + 'px';
+  });
+
+  // Labels hotspots
+  document.querySelectorAll('.hotspot .label').forEach(el=>{
+    el.style.fontSize  = CONFIG.LABEL_FONT_SIZE;
+    el.style.color     = CONFIG.LABEL_COLOR;
+    el.style.bottom    = CONFIG.LABEL_OFFSET_Y;
+  });
+
+  // Grain
+  const grainEl = document.querySelector('.grain');
+  if(grainEl){
+    grainEl.style.opacity         = CONFIG.GRAIN_OPACITY;
+    grainEl.style.backgroundSize  = CONFIG.GRAIN_SIZE;
+    grainEl.style.animationDuration = CONFIG.GRAIN_SPEED;
+  }
+
+  // Hint
+  const hintEl = document.getElementById('hint');
+  hintEl.textContent  = CONFIG.HINT_TEXT;
+  hintEl.style.fontSize = CONFIG.HINT_FONT_SIZE;
+  hintEl.style.transition = `color ${CONFIG.HINT_FADE} ease`;
+
+  // Curseur pulsation
+  const style = document.createElement('style');
+  style.textContent = `
+    #cursor { width:${CONFIG.CURSOR_REST_SIZE}; height:${CONFIG.CURSOR_REST_SIZE}; }
+    #cursor.active {
+      width:${CONFIG.CURSOR_PULSE_SIZE}; height:${CONFIG.CURSOR_PULSE_SIZE};
+      animation: cursor-pulse ${CONFIG.CURSOR_PULSE_SPEED} ease-in-out infinite;
+    }
+    @keyframes cursor-pulse {
+      0%,100% { transform:translate(-50%,-50%) scale(1); }
+      50%     { transform:translate(-50%,-50%) scale(${CONFIG.CURSOR_PULSE_SCALE}); }
+    }
+  `;
+  document.head.appendChild(style);
+
+  // Vidéo
+  const videoEl = document.getElementById('bgVideo');
+  videoEl.style.filter  = `brightness(${CONFIG.VIDEO_BRIGHTNESS}) contrast(${CONFIG.VIDEO_CONTRAST})`;
+  videoEl.style.padding = `${CONFIG.VIDEO_PADDING_H} ${CONFIG.VIDEO_PADDING_V}`;
+  videoEl.volume        = CONFIG.VOL_VIDEO;
+
+  // Écran de démarrage
+  document.querySelector('.sound-notice').childNodes[0].textContent = CONFIG.START_NOTICE_TEXT + ' ';
+  document.querySelector('.sound-notice span').textContent = CONFIG.START_NOTICE_SUB;
+  document.querySelector('#start-screen p').textContent = CONFIG.START_CTA_TEXT;
+})();
+
+/* ══════════════════════════════════════════════════
+   CANVAS — torche organique multi-passes
+══════════════════════════════════════════════════ */
+const canvas      = document.getElementById('overlay-canvas');
+const ctx         = canvas.getContext('2d');
+const cursorEl    = document.getElementById('cursor');
+const sub1        = document.getElementById('subtitle-1');
+const sub2        = document.getElementById('subtitle-2');
+const sub3        = document.getElementById('subtitle-3');
+const startScreen = document.getElementById('start-screen');
+
+function resizeCanvas() { canvas.width=window.innerWidth; canvas.height=window.innerHeight; }
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+let mouseX=window.innerWidth/2, mouseY=window.innerHeight/2;
+let torchX=mouseX, torchY=mouseY;
+let torchBaseRadius=0;
+let experienceStarted=false;
+
+const O = {
+  b1:{s:0.00044,p:Math.random()*6.28,a:0.062}, b2:{s:0.00071,p:Math.random()*6.28,a:0.038},
+  f1:{s:0.0088, p:Math.random()*6.28,a:0.024}, f2:{s:0.0141, p:Math.random()*6.28,a:0.017},
+  f3:{s:0.0229, p:Math.random()*6.28,a:0.011}, f4:{s:0.0373, p:Math.random()*6.28,a:0.006},
+  dx:{s:0.00058,p:Math.random()*6.28,a:3.2},   dy:{s:0.00074,p:Math.random()*6.28,a:2.5},
+  w: {s:0.00041,p:Math.random()*6.28,a:1.0},
+};
+function osc(o,t){ return Math.sin(t*o.s+o.p)*o.a; }
+
+document.addEventListener('mousemove', e => {
+  mouseX=e.clientX; mouseY=e.clientY;
+  cursorEl.style.left=mouseX+'px'; cursorEl.style.top=mouseY+'px';
+  updateFaceHover();
+});
+
+function safeGrad(x0,y0,r0,x1,y1,r1){
+  if([x0,y0,r0,x1,y1,r1].some(v=>!isFinite(v)||isNaN(v))) return null;
+  return ctx.createRadialGradient(x0,y0,Math.max(0,r0),x1,y1,Math.max(0.001,r1));
+}
+
+function renderTorch(t){
+  const W=canvas.width, H=canvas.height;
+  torchX+=(mouseX-torchX)*CONFIG.TORCH_FOLLOW_SPEED; torchY+=(mouseY-torchY)*CONFIG.TORCH_FOLLOW_SPEED;
+  const active=torchBaseRadius>5;
+  const jx=active?osc(O.dx,t):0, jy=active?osc(O.dy,t):0;
+  const cx=torchX+jx, cy=torchY+jy;
+  const intensity=1+osc(O.b1,t)+osc(O.b2,t)+osc(O.f1,t)+osc(O.f2,t)+osc(O.f3,t)+osc(O.f4,t);
+  const r=Math.max(0,torchBaseRadius*Math.max(0.72,intensity));
+  const warmPulse=osc(O.w,t);
+
+  ctx.clearRect(0,0,W,H); ctx.fillStyle='#000'; ctx.fillRect(0,0,W,H);
+  if(r<1) return;
+
+  ctx.globalCompositeOperation='destination-out';
+
+  const r1=r*3.4, g1=safeGrad(cx,cy,0,cx,cy,r1);
+  if(g1){g1.addColorStop(0,'rgba(0,0,0,0.28)');g1.addColorStop(0.22,'rgba(0,0,0,0.16)');g1.addColorStop(0.55,'rgba(0,0,0,0.07)');g1.addColorStop(0.82,'rgba(0,0,0,0.02)');g1.addColorStop(1,'rgba(0,0,0,0.00)');ctx.beginPath();ctx.arc(cx,cy,r1,0,Math.PI*2);ctx.fillStyle=g1;ctx.fill();}
+  const r2=r*2.0, g2=safeGrad(cx,cy,0,cx,cy,r2);
+  if(g2){g2.addColorStop(0,'rgba(0,0,0,0.44)');g2.addColorStop(0.35,'rgba(0,0,0,0.28)');g2.addColorStop(0.68,'rgba(0,0,0,0.10)');g2.addColorStop(1,'rgba(0,0,0,0.00)');ctx.beginPath();ctx.arc(cx,cy,r2,0,Math.PI*2);ctx.fillStyle=g2;ctx.fill();}
+  const g3=safeGrad(cx,cy,0,cx,cy,r);
+  if(g3){g3.addColorStop(0,'rgba(0,0,0,0.78)');g3.addColorStop(0.28,'rgba(0,0,0,0.68)');g3.addColorStop(0.58,'rgba(0,0,0,0.42)');g3.addColorStop(0.82,'rgba(0,0,0,0.16)');g3.addColorStop(1,'rgba(0,0,0,0.00)');ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fillStyle=g3;ctx.fill();}
+  const rCore=Math.max(1,r*(0.28+Math.abs(osc(O.f1,t))*0.15)), gC=safeGrad(cx,cy,0,cx,cy,rCore);
+  if(gC){gC.addColorStop(0,'rgba(0,0,0,0.18)');gC.addColorStop(1,'rgba(0,0,0,0.00)');ctx.beginPath();ctx.arc(cx,cy,rCore,0,Math.PI*2);ctx.fillStyle=gC;ctx.fill();}
+
+  ctx.globalCompositeOperation='source-over';
+
+  const wR=Math.max(1,r*0.62*Math.max(0.55,intensity)), wAlpha=0.048+Math.abs(warmPulse)*0.028;
+  const gW=safeGrad(cx,cy,0,cx,cy,wR);
+  if(gW){const gb=Math.floor(Math.max(0,Math.min(255,185+warmPulse*14)));gW.addColorStop(0,`rgba(255,${gb},70,${(wAlpha*1.5).toFixed(3)})`);gW.addColorStop(0.45,`rgba(255,170,55,${wAlpha.toFixed(3)})`);gW.addColorStop(1,'rgba(255,130,20,0.000)');ctx.beginPath();ctx.arc(cx,cy,wR,0,Math.PI*2);ctx.fillStyle=gW;ctx.fill();}
+
+  const vR_in=Math.max(0,r*1.05), vR_out=Math.max(vR_in+1,Math.sqrt(W*W+H*H)*0.72);
+  const gV=safeGrad(cx,cy,vR_in,cx,cy,vR_out);
+  if(gV){gV.addColorStop(0,'rgba(0,0,0,0.00)');gV.addColorStop(0.2,'rgba(0,0,0,0.18)');gV.addColorStop(0.6,'rgba(0,0,0,0.55)');gV.addColorStop(1,'rgba(0,0,0,0.92)');ctx.fillStyle=gV;ctx.fillRect(0,0,W,H);}
+}
+
+function growTorch(target,durationMs){
+  const start=torchBaseRadius, diff=target-start, t0=performance.now();
+  function step(now){const p=Math.min((now-t0)/durationMs,1);const e=p<0.5?2*p*p:1-Math.pow(-2*p+2,2)/2;torchBaseRadius=start+diff*e;if(p<1)requestAnimationFrame(step);}
+  requestAnimationFrame(step);
+}
+
+(function loop(t){renderTorch(t);requestAnimationFrame(loop);})();
+
+/* ══════════════════════════════════════════
+   AUDIO — Web Audio API pour public + chuchotement (loops & ducking)
+   + HTMLAudio pour les sons narratifs
+══════════════════════════════════════════ */
+let audioCtx=null;
+let publicSource=null, publicGain=null;
+let whisperBuffer=null;
+
+function getCtx(){
+  if(!audioCtx) audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+  return audioCtx;
+}
+
+async function loadBuffer(url){
+  const ac=getCtx();
+  try{ const r=await fetch(url); const ab=await r.arrayBuffer(); return ac.decodeAudioData(ab); }
+  catch(e){ return null; }
+}
+
+/* Lance public.mp3 en loop dès le début */
+async function startPublicLoop(){
+  const ac=getCtx();
+  const buf=await loadBuffer('public.mp3');
+  if(!buf) return;
+  publicSource=ac.createBufferSource();
+  publicSource.buffer=buf; publicSource.loop=true;
+  publicGain=ac.createGain();
+  publicGain.gain.setValueAtTime(0,ac.currentTime);
+  publicGain.gain.linearRampToValueAtTime(CONFIG.VOL_PUBLIC, ac.currentTime+CONFIG.FADE_PUBLIC_IN/1000);
+  publicSource.connect(publicGain); publicGain.connect(ac.destination);
+  publicSource.start();
+}
+
+/* Chuchotement — spawn unique avec fade in/out naturel */
+function spawnWhisper(){
+  const ac=getCtx();
+  if(!whisperBuffer) return;
+  const src=ac.createBufferSource(); src.buffer=whisperBuffer; src.loop=false;
+  const gain=ac.createGain();
+  const dur=whisperBuffer.duration;
+  gain.gain.setValueAtTime(0,ac.currentTime);
+  gain.gain.linearRampToValueAtTime(CONFIG.VOL_WHISPER, ac.currentTime+CONFIG.WHISPER_FADE_IN/1000);
+  gain.gain.setValueAtTime(CONFIG.VOL_WHISPER, ac.currentTime+Math.max(0,dur-CONFIG.WHISPER_FADE_OUT/1000));
+  gain.gain.linearRampToValueAtTime(0,ac.currentTime+dur);
+  src.connect(gain); gain.connect(ac.destination); src.start();
+}
+
+function scheduleWhispers(){
+  // Premier chuchotement à 30s
+  setTimeout(()=>{
+    spawnWhisper();
+    function next(){
+      const d=CONFIG.WHISPER_MIN+Math.random()*(CONFIG.WHISPER_MAX-CONFIG.WHISPER_MIN);
+      setTimeout(()=>{ spawnWhisper(); next(); },d);
+    }
+    next();
+  },CONFIG.WHISPER_FIRST);
+}
+
+/* Ducking — baisse tous les sons ambiants quand la vidéo joue */
+const narrativeEls=[
+  { el: document.getElementById('snd-perturbe'), vol: ()=>CONFIG.VOL_PERTURBE },
+  { el: document.getElementById('snd-candice'),  vol: ()=>CONFIG.VOL_CANDICE  },
+  { el: document.getElementById('snd-delicat'),  vol: ()=>CONFIG.VOL_DELICAT  },
+  { el: document.getElementById('snd-pratique'), vol: ()=>CONFIG.VOL_PRATIQUE },
+];
+
+function duckAmbient(doDuck, durationMs=CONFIG.FADE_DUCK_UP){
+  const ac=getCtx();
+  if(!publicGain) return;
+  const target=doDuck?CONFIG.VOL_DUCK_AMBIENT:CONFIG.VOL_PUBLIC;
+  publicGain.gain.cancelScheduledValues(ac.currentTime);
+  publicGain.gain.setValueAtTime(publicGain.gain.value,ac.currentTime);
+  publicGain.gain.linearRampToValueAtTime(target, ac.currentTime+durationMs/1000);
+
+  // Chaque narratif est ducké vers VOL_DUCK_NARR, puis remonte vers son propre volume
+  narrativeEls.forEach(({el, vol})=>{
+    if(el.paused) return;
+    const targetVol = doDuck ? CONFIG.VOL_DUCK_NARR : vol();
+    const steps=40, sv=el.volume, diff=targetVol-sv, interval=durationMs/steps; let n=0;
+    const t=setInterval(()=>{n++;el.volume=Math.max(0,Math.min(1,sv+diff*(n/steps)));if(n>=steps)clearInterval(t);},interval);
+  });
+}
+
+/* fadeInEl vérifie si la vidéo joue et démarre au bon volume */
+function fadeInNarr(el, ms, vol){
+  // Si la vidéo joue au moment où le narrateur démarre, on part du volume ducké
+  const startVol = videoPlaying ? CONFIG.VOL_DUCK_NARR : 0;
+  const targetVol = videoPlaying ? CONFIG.VOL_DUCK_NARR : vol;
+  el.volume = startVol;
+  el.play().catch(()=>{});
+  if(videoPlaying) return; // pas de fade si déjà ducké, il reste bas
+  const steps=50, step=targetVol/steps; let n=0;
+  const t=setInterval(()=>{n++;el.volume=Math.min(targetVol,n*step);if(n>=steps)clearInterval(t);},ms/steps);
+}
+
+/* Sons narratifs */
+const sndPerturbe=document.getElementById('snd-perturbe');
+const sndCandice =document.getElementById('snd-candice');
+const sndDelicat =document.getElementById('snd-delicat');
+const sndPratique=document.getElementById('snd-pratique');
+
+function fadeInEl(el,ms,vol){
+  el.volume=0; el.play().catch(()=>{});
+  const steps=50,step=vol/steps;let n=0;
+  const t=setInterval(()=>{n++;el.volume=Math.min(vol,n*step);if(n>=steps)clearInterval(t);},ms/steps);
+}
+function fadeOutEl(el,ms,cb){
+  const steps=50,sv=el.volume,step=sv/steps;let n=0;
+  const t=setInterval(()=>{n++;el.volume=Math.max(0,sv-n*step);if(n>=steps){clearInterval(t);el.pause();el.currentTime=0;if(cb)cb();}},ms/steps);
+}
+
+/* ══════════════════════════════════════════
+   CARTELS — hover sur les visages
+══════════════════════════════════════════ */
+const FACES={
+  caleb:{
+    // Centre du hotspot L2-3 : left 22% + width 13%/2 = 28.5%, top 34% + height 30%/2 = 49%
+    xPct:0.285, yPct:0.49, rx:0.065, ry:0.15,
+    cartel:document.getElementById('cartel-caleb'), hovered:false
+  },
+  fillette:{
+    // Centre du hotspot L2-6 : left 33% + 13%/2 = 39.5%
+    xPct:0.395, yPct:0.49, rx:0.065, ry:0.15,
+    cartel:document.getElementById('cartel-fillette'), hovered:false
+  }
+};
+
+function updateFaceHover(){
+  const W=window.innerWidth, H=window.innerHeight;
+  const torchOn=torchBaseRadius>5;
+  let anyCartel=false, anyHovered=false;
+  for(const[,face] of Object.entries(FACES)){
+    const cx=face.xPct*W, cy=face.yPct*H;
+    const rx=face.rx*W, ry=face.ry*H;
+    const dx=(mouseX-cx)/rx, dy=(mouseY-cy)/ry;
+    face.hovered=(dx*dx+dy*dy)<=1.0;
+
+    // Cartel visible seulement si torche active, survolé, ET vidéo ne joue pas
+    const showCartel=torchOn&&face.hovered&&!videoPlaying;
+    face.cartel.style.left=(cx-110)+'px';
+    face.cartel.style.top =(cy+ry+CONFIG.CARTEL_OFFSET_Y)+'px';
+    face.cartel.classList.toggle('visible',showCartel);
+    if(showCartel) anyCartel=true;
+
+    // Pulsation : torche active + survolé (même si vidéo joue)
+    if(torchOn&&face.hovered) anyHovered=true;
+  }
+  cursorEl.classList.toggle('active',anyHovered);
+}
+
+/* ══════════════════════════════════════════
+   VIDÉO INTERACTIVE — avec toggle stop + ducking
+══════════════════════════════════════════ */
+const video=document.getElementById('bgVideo');
+let activeEnd=null, returning=false, videoPlaying=false, activeHotspot=null;
+
+video.addEventListener('loadedmetadata',()=>{ video.currentTime=0; video.pause(); });
+
+video.addEventListener('timeupdate',()=>{
+  if(activeEnd!==null&&!returning&&video.currentTime>=activeEnd){
+    stopVideo();
+  }
+});
+
+function stopVideo(){
+  returning=true;
+  video.pause();
+  duckAmbient(false, CONFIG.FADE_DUCK_UP);
+  videoPlaying=false;
+  activeHotspot=null;
+  setTimeout(()=>{
+    video.currentTime=0;
+    activeEnd=null;
+    returning=false;
+  }, CONFIG.VIDEO_STOP_DELAY);
+}
+
+document.querySelectorAll('.hotspot').forEach(hotspot=>{
+  const start=parseFloat(hotspot.dataset.start);
+  const end=parseFloat(hotspot.dataset.end);
+  if(isNaN(start)||isNaN(end)) return;
+
+  hotspot.addEventListener('click',()=>{
+    if(torchBaseRadius<5) return;
+
+    // Si ce même hotspot est déjà en cours → stop et retour
+    if(videoPlaying&&activeHotspot===hotspot){
+      stopVideo();
+      return;
+    }
+
+    // Lancer la vidéo
+    returning=false;
+    activeEnd=end;
+    activeHotspot=hotspot;
+    videoPlaying=true;
+
+    duckAmbient(true, CONFIG.FADE_DUCK_DOWN);
+
+    video.pause(); video.currentTime=start;
+    const onSeeked=()=>{
+      video.removeEventListener('seeked',onSeeked);
+      video.volume = CONFIG.VOL_VIDEO;
+      video.play().catch(()=>{});
+    };
+    video.addEventListener('seeked',onSeeked);
+  });
+});
+
+/* ══════════════════════════════════════════
+   TYPING cinématographique
+══════════════════════════════════════════ */
+function humanDelay(c,prev){
+  const r=Math.random;
+  const S=1/CONFIG.TYPING_SPEED;
+  if(c==='\n')          return (300+r()*240)*S;
+  if('…'.includes(c))   return (280+r()*230)*S;
+  if('—'.includes(c))   return (180+r()*120)*S;
+  if('.!?'.includes(c)) return (120+r()*170)*S;
+  if(',;:'.includes(c)) return (75+r()*100)*S;
+  if(c===' '){if(prev&&'.!?,;:'.includes(prev))return (170+r()*130)*S;return (85+r()*130)*S;}
+  const base=(30+r()*50)*S;
+  if(r()<0.08) return base*2.7;
+  if(r()<0.035)return base*0.25;
+  return base;
+}
+function typeInto(el,text,onDone){
+  el.textContent='';el.style.opacity='1';let i=0;
+  function next(){if(i>=text.length){if(onDone)onDone();return;}el.textContent+=text[i];const d=humanDelay(text[i],text[i-1]||'');i++;setTimeout(next,d);}
+  next();
+}
+function hideEl(el,delay,cb){
+  setTimeout(()=>{el.style.opacity='0';setTimeout(()=>{el.textContent='';if(cb)cb();},800);},delay);
+}
+
+/* ══════════════════════════════════════════
+   TITRE cinématographique
+══════════════════════════════════════════ */
+function revealTitle(){
+  const el=document.getElementById('site-title');
+  // Découper CONFIG.TITLE_TEXT en parties séparées par ' — '
+  const rawParts = CONFIG.TITLE_TEXT.split(' — ');
+  const parts = [];
+  rawParts.forEach((p,i)=>{ parts.push(p); if(i<rawParts.length-1) parts.push('—'); });
+  let html='';
+  parts.forEach((part,pi)=>{
+    if(part==='—'){html+=`<span class="sep">—</span>`;}
+    else{part.split('').forEach((ch,ci)=>{html+=`<span class="char" data-i="${pi*20+ci}">${ch===' '?'&nbsp;':ch}</span>`;});}
+  });
+  el.innerHTML=html;
+  el.style.color      = CONFIG.TITLE_COLOR;
+  el.style.textShadow = `0 0 18px ${CONFIG.TITLE_GLOW}`;
+  el.querySelectorAll('.char').forEach((span,i)=>{
+    setTimeout(()=>{span.style.opacity='1';span.style.transform='translateY(0)';},
+      CONFIG.TITLE_INITIAL_DELAY + i*CONFIG.TITLE_CHAR_DELAY + Math.random()*25);
+  });
+  el.querySelectorAll('.sep').forEach((sep,i)=>{
+    setTimeout(()=>{sep.style.opacity='0.6';},CONFIG.TITLE_INITIAL_DELAY+(i+1)*340);
+  });
+}
+
+/* ══════════════════════════════════════════
+   SÉQUENCE PRINCIPALE
+══════════════════════════════════════════ */
+async function startExperience(){
+  if(experienceStarted) return;
+  experienceStarted=true;
+  startScreen.style.display='none';
+
+  revealTitle();
+
+  // public.mp3 démarre immédiatement en loop avec fade in
+  startPublicLoop();
+
+  // Chargement chuchotement + schedule
+  loadBuffer('chuchotement.wav').then(buf=>{ whisperBuffer=buf; scheduleWhispers(); });
+
+  // Séquence narrative après silence initial
+  setTimeout(()=>{
+    const sub4=document.getElementById('subtitle-4');
+
+    fadeInNarr(sndPerturbe,CONFIG.FADE_NARR_IN,CONFIG.VOL_PERTURBE);
+    typeInto(sub1, CONFIG.SUBTITLE_TEXT_1, ()=>{
+      growTorch(CONFIG.TORCH_RADIUS, CONFIG.TORCH_GROW_DURATION);
+      setTimeout(()=>{document.getElementById('hint').classList.add('visible');},CONFIG.TORCH_HINT_DELAY);
+      setTimeout(()=>fadeOutEl(sndPerturbe,CONFIG.FADE_NARR_OUT),500);
+
+      hideEl(sub1,CONFIG.SUBTITLE_HOLD_1,()=>{
+        setTimeout(()=>{
+          fadeInNarr(sndCandice,CONFIG.FADE_NARR_IN,CONFIG.VOL_CANDICE);
+          typeInto(sub2, CONFIG.SUBTITLE_TEXT_2, ()=>{
+            setTimeout(()=>fadeOutEl(sndCandice,CONFIG.FADE_NARR_OUT),900);
+            hideEl(sub2,CONFIG.SUBTITLE_HOLD_2,()=>{
+              setTimeout(()=>{
+                fadeInNarr(sndDelicat,CONFIG.FADE_NARR_IN,CONFIG.VOL_DELICAT);
+                typeInto(sub3, CONFIG.SUBTITLE_TEXT_3, ()=>{
+                  setTimeout(()=>fadeOutEl(sndDelicat,CONFIG.FADE_NARR_OUT),1000);
+                  hideEl(sub3,CONFIG.SUBTITLE_HOLD_3,()=>{
+                    setTimeout(()=>{
+                      fadeInNarr(sndPratique,CONFIG.FADE_NARR_IN,CONFIG.VOL_PRATIQUE);
+                      typeInto(sub4, CONFIG.SUBTITLE_TEXT_4, ()=>{
+                        setTimeout(()=>fadeOutEl(sndPratique,CONFIG.FADE_NARR_OUT),1000);
+                        hideEl(sub4,CONFIG.SUBTITLE_HOLD_4,null);
+                      });
+                    },CONFIG.SILENCE_BETWEEN_3_4);
+                  });
+                });
+              },CONFIG.SILENCE_BETWEEN_2_3);
+            });
+          });
+        },CONFIG.SILENCE_BETWEEN_1_2);
+      });
+    });
+  },CONFIG.SILENCE_BEFORE_SEQ);
+}
+
+startScreen.addEventListener('click',startExperience);
+startScreen.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' ')startExperience();});
+</script>
+</body>
+</html>
