@@ -41,9 +41,9 @@
       animation: cursor-pulse 0.9s ease-in-out infinite;
     }
     @keyframes cursor-pulse {
-      0%   { transform: translate(-50%,-50%) scale(1);   box-shadow: 0 0 0 4px rgba(255,220,120,0.22), 0 0 18px rgba(255,200,80,0.6),  0 0 36px rgba(255,170,40,0.3); }
+      0%   { transform: translate(-50%,-50%) scale(1);    box-shadow: 0 0 0 4px rgba(255,220,120,0.22), 0 0 18px rgba(255,200,80,0.6),  0 0 36px rgba(255,170,40,0.3); }
       50%  { transform: translate(-50%,-50%) scale(1.55); box-shadow: 0 0 0 10px rgba(255,220,120,0.08), 0 0 30px rgba(255,200,80,0.45), 0 0 60px rgba(255,170,40,0.18); }
-      100% { transform: translate(-50%,-50%) scale(1);   box-shadow: 0 0 0 4px rgba(255,220,120,0.22), 0 0 18px rgba(255,200,80,0.6),  0 0 36px rgba(255,170,40,0.3); }
+      100% { transform: translate(-50%,-50%) scale(1);    box-shadow: 0 0 0 4px rgba(255,220,120,0.22), 0 0 18px rgba(255,200,80,0.6),  0 0 36px rgba(255,170,40,0.3); }
     }
 
     .scene {
@@ -118,17 +118,17 @@
     }
     .hotspot:hover .label { opacity: 1; }
 
-    #face-L2-3 { left: 22%; top: 34%; width: 13%; height: 30%; }
-    #face-L2-6 { left: 33%; top: 34%; width: 13%; height: 30%; }
+    /* Hotspots positionnés dynamiquement par JS via getVideoRect() */
+    #face-L2-3, #face-L2-6 { position: absolute; }
 
-    /* ── CARTELS — positionnés sous les visages ── */
+    /* Cartels positionnés entièrement par JS en px calculés depuis % fenêtre */
     .face-cartel {
       position: fixed; z-index: 15;
       pointer-events: none; opacity: 0;
       transition: opacity 0.5s ease;
     }
     .face-cartel.visible { opacity: 1; }
-    .face-cartel svg { display: block; overflow: visible; }
+    .face-cartel svg { display: block; overflow: visible; width: 100%; height: auto; }
 
     .cartel-path {
       fill: none; stroke: rgba(255,255,255,0.82); stroke-width: 0.7;
@@ -154,22 +154,21 @@
     #start-screen {
       position: fixed; inset: 0; z-index: 50;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
-      gap: 28px;
-      background: #000; cursor: pointer;
+      gap: 28px; background: #000; cursor: pointer;
+    }
+    #start-intro {
+      letter-spacing: 0.25em; text-align: center;
     }
     #start-screen .sound-notice {
-      color: rgba(255,255,255,.22); font-family: 'Cormorant Garamond', serif;
-      font-size: clamp(11px, 1.1vw, 14px); font-style: italic;
-      letter-spacing: .18em; text-align: center;
+      font-style: italic; letter-spacing: .18em; text-align: center;
     }
     #start-screen .sound-notice span {
       display: block; margin-top: 4px;
-      color: rgba(255,220,120,.28); font-size: clamp(9px,.9vw,11px);
+      font-size: clamp(9px,.9vw,11px);
       font-style: normal; letter-spacing: .28em; text-transform: uppercase;
     }
     #start-screen p {
-      color: rgba(255,255,255,.38); font-family: 'Cinzel', serif;
-      font-size: .75rem; letter-spacing: .32em; text-transform: uppercase;
+      letter-spacing: .32em; text-transform: uppercase;
       animation: pulse 3s ease-in-out infinite;
     }
 
@@ -181,6 +180,23 @@
       transition: color 3s ease;
     }
     #hint.visible { color: rgba(255,255,255,0.35); }
+
+    #btn-fs {
+      position: fixed; bottom: 20px; right: 24px;
+      z-index: 40; background: none; border: none;
+      cursor: none; padding: 8px;
+      opacity: 0.55;
+      transition: opacity 0.25s ease, filter 0.25s ease;
+    }
+    #btn-fs:hover {
+      opacity: 1;
+      filter: drop-shadow(0 0 6px rgba(255,255,255,0.9));
+    }
+    #btn-fs svg {
+      display: block; width: 20px; height: 20px;
+      fill: none; stroke: #fff;
+      stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+    }
 
     @keyframes pulse { 0%,100%{opacity:.2} 50%{opacity:.7} }
   </style>
@@ -198,23 +214,23 @@
 <div class="subtitle" id="subtitle-4"></div>
 
 <div class="scene">
-  <video id="bgVideo" preload="auto" playsinline>
+  <video id="bgVideo" preload="auto" playsinline disablePictureInPicture controlsList="nodownload nofullscreen noremoteplayback">
     <source src="Soliman.mp4" type="video/mp4">
   </video>
   <div class="hotspot" id="face-L2-3" data-start="3" data-end="20" data-name="Caleb">
-    <span class="label">Caleb</span>
+    <span class="label"></span>
   </div>
   <div class="hotspot" id="face-L2-6" data-start="20" data-end="36" data-name="La fillette">
-    <span class="label">La fillette</span>
+    <span class="label"></span>
   </div>
 </div>
 
 <!-- Cartel Caleb -->
 <div class="face-cartel" id="cartel-caleb">
-  <svg viewBox="0 0 200 125" width="220" height="138">
+  <svg viewBox="0 0 200 125">
     <path class="cartel-path" d="M 100 0 L 100 22 L 10 22 L 10 115 L 190 115 L 190 22 L 100 22"/>
     <text class="cartel-title" x="22" y="43">Caleb</text>
-    <text class="cartel-body"  x="22" y="63">Témoin, Alep — 2013</text>
+    <text class="cartel-body"  x="22" y="63">Témoin, Alep — 1895</text>
     <text class="cartel-body"  x="22" y="79">Archives Abounaddara</text>
     <text class="cartel-body"  x="22" y="95">CNRS — 2026</text>
   </svg>
@@ -222,22 +238,37 @@
 
 <!-- Cartel La fillette -->
 <div class="face-cartel" id="cartel-fillette">
-  <svg viewBox="0 0 200 125" width="220" height="138">
+  <svg viewBox="0 0 200 125">
     <path class="cartel-path" d="M 100 0 L 100 22 L 10 22 L 10 115 L 190 115 L 190 22 L 100 22"/>
     <text class="cartel-title" x="22" y="43">La fillette</text>
-    <text class="cartel-body"  x="22" y="63">Identité inconnue — 2014</text>
+    <text class="cartel-body"  x="22" y="63">Identité inconnue — 1873</text>
     <text class="cartel-body"  x="22" y="79">Archives Abounaddara</text>
     <text class="cartel-body"  x="22" y="95">CNRS — 2026</text>
   </svg>
 </div>
 
-<div id="hint">Déplacez la lumière — Cliquez sur un visage</div>
+<div id="hint">Cliquez sur un visage pour connaitre son histoire</div>
+<button id="btn-fs" title="Plein écran">
+  <svg id="icon-fs-enter" viewBox="0 0 24 24">
+    <polyline points="15 3 21 3 21 9"/>
+    <polyline points="9 21 3 21 3 15"/>
+    <line x1="21" y1="3" x2="14" y2="10"/>
+    <line x1="3" y1="21" x2="10" y2="14"/>
+  </svg>
+  <svg id="icon-fs-exit" viewBox="0 0 24 24" style="display:none">
+    <polyline points="4 14 10 14 10 20"/>
+    <polyline points="20 10 14 10 14 4"/>
+    <line x1="10" y1="14" x2="3" y2="21"/>
+    <line x1="21" y1="3" x2="14" y2="10"/>
+  </svg>
+</button>
 <div id="start-screen">
+  <div id="start-intro"></div>
   <div class="sound-notice">
     Cette expérience est bien meilleure avec le son
     <span>&#9834; &nbsp; casque recommandé</span>
   </div>
-  <p>cliquez pour commencer</p>
+  <p id="start-cta">cliquez pour commencer</p>
 </div>
 
 <!-- Sons narratifs -->
@@ -273,73 +304,70 @@ const CONFIG = {
      ║  2. FONDUS  (millisecondes)                          ║
      ╚══════════════════════════════════════════════════════╝ */
 
-  FADE_PUBLIC_IN:     3500,  // montée du fond au démarrage
-  FADE_DUCK_DOWN:     1000,  // descente lors d'un clic vidéo
-  FADE_DUCK_UP:       1400,  // remontée quand la vidéo se termine
-  FADE_NARR_IN:        800,  // entrée de chaque voix narrative
-  FADE_NARR_OUT:      1400,  // sortie de chaque voix narrative
-  FADE_VIDEO_IN:       600,  // fondu d'entrée du volume vidéo au clic
-  FADE_VIDEO_OUT:      800,  // fondu de sortie du volume vidéo à la fin
+  FADE_PUBLIC_IN:     3500,
+  FADE_DUCK_DOWN:     1000,
+  FADE_DUCK_UP:       1400,
+  FADE_NARR_IN:        800,
+  FADE_NARR_OUT:      1400,
+  FADE_VIDEO_IN:       600,
+  FADE_VIDEO_OUT:      800,
 
   /* ╔══════════════════════════════════════════════════════╗
      ║  3. CHUCHOTEMENT  (millisecondes)                    ║
      ╚══════════════════════════════════════════════════════╝ */
 
-  WHISPER_FIRST:      30000, // délai avant le tout premier chuchotement
-  WHISPER_MIN:        35000, // intervalle minimum entre deux occurrences
-  WHISPER_MAX:        70000, // intervalle maximum entre deux occurrences
-  WHISPER_FADE_IN:     1800, // durée du fade in
-  WHISPER_FADE_OUT:    2200, // durée du fade out (avant fin du fichier)
+  WHISPER_FIRST:      30000,
+  WHISPER_MIN:        35000,
+  WHISPER_MAX:        70000,
+  WHISPER_FADE_IN:     1800,
+  WHISPER_FADE_OUT:    2200,
 
   /* ╔══════════════════════════════════════════════════════╗
      ║  4. TORCHE                                           ║
      ╚══════════════════════════════════════════════════════╝ */
 
-  TORCH_RADIUS:        160,  // rayon final en pixels
-  TORCH_GROW_DURATION: 26000,// durée pour atteindre ce rayon (ms)
-                             // — plus grand = croissance plus lente
-  TORCH_FOLLOW_SPEED:  0.068,// réactivité souris : 0.01 lent → 0.15 rapide
-  TORCH_HINT_DELAY:    12000,// délai après début de croissance → affiche hint
+  TORCH_RADIUS:        0.43, // fraction de min(largeur, hauteur) — ex: 0.13 = 13%
+  TORCH_GROW_DURATION: 26000,
+  TORCH_FOLLOW_SPEED:  0.068,
+  TORCH_HINT_DELAY:    12000,
 
   /* ╔══════════════════════════════════════════════════════╗
      ║  5. VIDÉO INTERACTIVE                                ║
      ╚══════════════════════════════════════════════════════╝ */
 
-  VIDEO_BRIGHTNESS:    0.88, // luminosité de la vidéo  (1.0 = normal)
-  VIDEO_CONTRAST:      1.04, // contraste de la vidéo   (1.0 = normal)
-  VIDEO_PADDING_H:     '2vh',// padding vertical autour de la vidéo
-  VIDEO_PADDING_V:     '2vw',// padding horizontal autour de la vidéo
-  VIDEO_STOP_DELAY:     800, // délai (ms) avant reset après fin ou stop
+  VIDEO_BRIGHTNESS:    0.88,
+  VIDEO_CONTRAST:      1.04,
+  VIDEO_PADDING_H:     '2vh',
+  VIDEO_PADDING_V:     '2vw',
+  VIDEO_STOP_DELAY:     800,
 
   /* ╔══════════════════════════════════════════════════════╗
      ║  6. GRAIN CINÉMATIQUE                                ║
      ╚══════════════════════════════════════════════════════╝ */
 
-  GRAIN_OPACITY:       0.052, // intensité du grain  (0 = off, 0.08 = fort)
-  GRAIN_SIZE:          '200px 200px', // taille des tuiles de grain
-  GRAIN_SPEED:         '0.5s',        // vitesse d'animation du grain
+  GRAIN_OPACITY:       0.052,
+  GRAIN_SIZE:          '200px 200px',
+  GRAIN_SPEED:         '0.5s',
 
   /* ╔══════════════════════════════════════════════════════╗
      ║  7. CURSEUR PULSANT                                  ║
      ╚══════════════════════════════════════════════════════╝ */
 
-  CURSOR_REST_SIZE:    '5px',  // taille au repos
-  CURSOR_PULSE_SIZE:   '14px', // taille en pulsation (sur visage actif)
-  CURSOR_PULSE_SCALE:   1.75,  // amplitude de la pulsation (scale max)
-  CURSOR_PULSE_SPEED:  '0.9s', // durée d'un cycle de pulsation
+  CURSOR_REST_SIZE:    '5px',
+  CURSOR_PULSE_SIZE:   '14px',
+  CURSOR_PULSE_SCALE:   1.75,
+  CURSOR_PULSE_SPEED:  '0.9s',
 
   /* ╔══════════════════════════════════════════════════════╗
      ║  8. SOUS-TITRES                                      ║
      ╚══════════════════════════════════════════════════════╝ */
 
-  // Taille de police — format clamp(min, valeur_responsive, max)
-  SUBTITLE_FONT:       'clamp(15px, 1.9vw, 30px)',
-  SUBTITLE_LINE_HEIGHT: '1.7',  // interligne
-  SUBTITLE_MAX_WIDTH:  '44ch',  // largeur max des sous-titres 1 et 2
-  SUBTITLE_MAX_WIDTH_3: '36ch', // largeur max du sous-titre 3
-  SUBTITLE_FADE:       '0.75s', // durée du fondu d'entrée/sortie
+  SUBTITLE_FONT:        'clamp(15px, 1.9vw, 30px)',
+  SUBTITLE_LINE_HEIGHT: '1.7',
+  SUBTITLE_MAX_WIDTH:   '44ch',
+  SUBTITLE_MAX_WIDTH_3: '36ch',
+  SUBTITLE_FADE:        '0.75s',
 
-  // Textes des trois témoignages (modifier librement)
   SUBTITLE_TEXT_1:
     "Je ne sais pas pourquoi.. ça m'a...\n" +
     "ça m'a autant perturbé.\n" +
@@ -365,58 +393,83 @@ const CONFIG = {
     "de vérité, d'honnêteté\n" +
     "et de sincérité dans les pratiques.",
 
-  // Durées d'affichage avant disparition (ms, après fin du typing)
   SUBTITLE_HOLD_1:     3000,
   SUBTITLE_HOLD_2:     3500,
   SUBTITLE_HOLD_3:     3600,
   SUBTITLE_HOLD_4:     4000,
 
   /* ╔══════════════════════════════════════════════════════╗
-     ║  9. TYPING — vitesse de frappe des sous-titres       ║
+     ║  9. TYPING                                           ║
      ╚══════════════════════════════════════════════════════╝ */
 
-  TYPING_SPEED:        1.4,  // 1.0 = normal, 0.5 = lent, 2.0 = rapide
+  TYPING_SPEED:        1.4,
 
   /* ╔══════════════════════════════════════════════════════╗
      ║  10. TITRE HAUT GAUCHE                               ║
      ╚══════════════════════════════════════════════════════╝ */
 
-  TITLE_TEXT:          'Abounaddara — CNRS — 2026', // texte du titre
-                       // (les — seront animés séparément)
-  TITLE_FONT:          'clamp(0.6rem, 1.2vw, 0.92rem)', // taille police
-  TITLE_COLOR:         'rgba(210,175,90,1)',   // couleur dorée
-  TITLE_GLOW:          'rgba(210,160,50,0.25)',// couleur du halo
-  TITLE_CHAR_DELAY:     55,  // délai entre chaque lettre (ms)
-  TITLE_INITIAL_DELAY:  800, // délai avant la première lettre (ms)
+  TITLE_TEXT:          'Abounaddara — CNRS — 2026',
+  TITLE_FONT:          'clamp(0.6rem, 1.2vw, 0.92rem)',
+  TITLE_COLOR:         'rgba(210,175,90,1)',
+  TITLE_GLOW:          'rgba(210,160,50,0.25)',
+  TITLE_CHAR_DELAY:     55,
+  TITLE_INITIAL_DELAY:  800,
 
   /* ╔══════════════════════════════════════════════════════╗
      ║  11. CARTELS DES VISAGES                             ║
      ╚══════════════════════════════════════════════════════╝ */
 
-  CARTEL_FONT_TITLE:   13,   // taille titre cartel (px)
-  CARTEL_FONT_BODY:    11,   // taille corps cartel (px)
-  CARTEL_OFFSET_Y:     20,   // décalage vertical sous le bas du visage (px)
-  CARTEL_WIDTH:        220,  // largeur du SVG cartel (px)
-  CARTEL_STROKE_COLOR: 'rgba(255,255,255,0.82)', // couleur du trait SVG
-  CARTEL_STROKE_WIDTH: 0.7,  // épaisseur du trait SVG
-  CARTEL_DRAW_SPEED:  '0.75s',// durée du dessin de la ligne SVG
-  CARTEL_FADE_SPEED:  '0.5s', // fondu d'entrée/sortie du cartel
+  CARTEL_FONT_TITLE:        13,
+  CARTEL_FONT_TITLE_COLOR:  'rgba(255,255,255,1)',
+  CARTEL_FONT_TITLE_FAMILY: 'Helvetica Neue, Arial, sans-serif',
+  CARTEL_FONT_BODY:         11,
+  CARTEL_FONT_BODY_COLOR:   'rgba(255,255,255,0.58)',
+  CARTEL_FONT_BODY_FAMILY:  'Cormorant Garamond, Georgia, serif',
+  CARTEL_OFFSET_Y:          0.015, // décalage vertical global (fraction hauteur fenêtre)
+  CARTEL_WIDTH:             0.11,  // largeur (fraction largeur fenêtre)
+  CARTEL_STROKE_COLOR:      'rgba(255,255,255,0.82)',
+  CARTEL_STROKE_WIDTH:      0.7,
+  CARTEL_DRAW_SPEED:        '0.75s',
+  CARTEL_FADE_SPEED:        '0.5s',
+
+  // Décalage individuel de chaque cartel (fraction de la largeur/hauteur fenêtre)
+  // + = droite ou bas  /  - = gauche ou haut
+  CARTEL_CALEB_OFFSET_X:    -0.021,     // ex: -0.02 décale de 2vw à gauche
+  CARTEL_CALEB_OFFSET_Y:    0,     // ex:  0.01 descend de 1vh
+  CARTEL_FILLETTE_OFFSET_X: -0.008,
+  CARTEL_FILLETTE_OFFSET_Y: 0,
 
   /* ╔══════════════════════════════════════════════════════╗
      ║  12. LABELS AU SURVOL DES HOTSPOTS                   ║
      ╚══════════════════════════════════════════════════════╝ */
 
-  LABEL_FONT_SIZE:     '12px',             // taille du label
-  LABEL_COLOR:         'rgba(255,235,180,0.9)', // couleur du label
-  LABEL_OFFSET_Y:      '-30px',            // décalage sous le hotspot
+  LABEL_FONT_SIZE:     '12px',
+  LABEL_COLOR:         'rgba(255,235,180,0.9)',
+  LABEL_OFFSET_Y:      '-30px',
 
   /* ╔══════════════════════════════════════════════════════╗
      ║  13. ÉCRAN DE DÉMARRAGE                              ║
      ╚══════════════════════════════════════════════════════╝ */
 
+  // Phrase d'introduction
+  START_INTRO_TEXT:    'Bienvenue',
+  START_INTRO_FONT:    'clamp(1.4rem, 3.5vw, 3.2rem)',
+  START_INTRO_COLOR:   'rgba(210,175,90,0.85)',
+  START_INTRO_FAMILY:  'Cormorant Garamond, serif',
+
+  // Texte "son conseillé"
   START_NOTICE_TEXT:   'Cette expérience est bien meilleure avec le son',
+  START_NOTICE_FONT:   'clamp(11px, 1.1vw, 14px)',
+  START_NOTICE_COLOR:  'rgba(255,255,255,.22)',
+  START_NOTICE_FAMILY: 'Cormorant Garamond, serif',
   START_NOTICE_SUB:    '♪  casque recommandé',
+  START_NOTICE_SUB_COLOR: 'rgba(255,220,120,.28)',
+
+  // Bouton "cliquer pour commencer"
   START_CTA_TEXT:      'cliquez pour commencer',
+  START_CTA_FONT:      '0.75rem',
+  START_CTA_COLOR:     'rgba(255,255,255,.38)',
+  START_CTA_FAMILY:    'Cinzel, serif',
 
   /* ╔══════════════════════════════════════════════════════╗
      ║  14. HINT BAS DE PAGE                                ║
@@ -425,16 +478,16 @@ const CONFIG = {
   HINT_TEXT:           'Déplacez la lumière — Cliquez sur un visage',
   HINT_FONT_SIZE:      '10px',
   HINT_COLOR:          'rgba(255,255,255,0.35)',
-  HINT_FADE:           '3s',   // durée du fondu d'apparition
+  HINT_FADE:           '3s',
 
   /* ╔══════════════════════════════════════════════════════╗
      ║  15. SÉQUENCE — silences entre les voix (ms)         ║
      ╚══════════════════════════════════════════════════════╝ */
 
-  SILENCE_BEFORE_SEQ:   7000, // silence avant le 1er témoignage
-  SILENCE_BETWEEN_1_2:  2600, // silence entre perturbe et candice
-  SILENCE_BETWEEN_2_3:  1800, // silence entre candice et delicat
-  SILENCE_BETWEEN_3_4:  2200, // silence entre delicat et pratique
+  SILENCE_BEFORE_SEQ:   7000,
+  SILENCE_BETWEEN_1_2:  2600,
+  SILENCE_BETWEEN_2_3:  1800,
+  SILENCE_BETWEEN_3_4:  2200,
 
 };
 /* ══════════════════════════════════════════════════════════════
@@ -442,486 +495,613 @@ const CONFIG = {
    ══════════════════════════════════════════════════════════════ */
 
 
-/* ── Application de toutes les variables CSS dynamiques ── */
+/* ── Application des variables CSS statiques ── */
 (function applyConfig(){
-  // Sous-titres
   document.querySelectorAll('.subtitle').forEach(el=>{
     el.style.fontSize   = CONFIG.SUBTITLE_FONT;
     el.style.lineHeight = CONFIG.SUBTITLE_LINE_HEIGHT;
-    el.style.transition = `opacity ${CONFIG.SUBTITLE_FADE} ease`;
+    el.style.transition = 'opacity ' + CONFIG.SUBTITLE_FADE + ' ease';
   });
   document.getElementById('subtitle-1').style.maxWidth = CONFIG.SUBTITLE_MAX_WIDTH;
   document.getElementById('subtitle-2').style.maxWidth = CONFIG.SUBTITLE_MAX_WIDTH;
   document.getElementById('subtitle-3').style.maxWidth = CONFIG.SUBTITLE_MAX_WIDTH_3;
   document.getElementById('subtitle-4').style.maxWidth = CONFIG.SUBTITLE_MAX_WIDTH;
 
-  // Titre
-  const titleEl = document.getElementById('site-title');
-  titleEl.style.fontSize = CONFIG.TITLE_FONT;
+  document.getElementById('site-title').style.fontSize = CONFIG.TITLE_FONT;
 
-  // Cartels
-  document.querySelectorAll('.cartel-title').forEach(el=>el.setAttribute('font-size', CONFIG.CARTEL_FONT_TITLE));
-  document.querySelectorAll('.cartel-body').forEach(el =>el.setAttribute('font-size', CONFIG.CARTEL_FONT_BODY));
   document.querySelectorAll('.cartel-path').forEach(el=>{
     el.style.stroke      = CONFIG.CARTEL_STROKE_COLOR;
     el.style.strokeWidth = CONFIG.CARTEL_STROKE_WIDTH;
-    el.style.transition  = `stroke-dashoffset ${CONFIG.CARTEL_DRAW_SPEED} cubic-bezier(0.4,0,0.2,1)`;
+    el.style.transition  = 'stroke-dashoffset ' + CONFIG.CARTEL_DRAW_SPEED + ' cubic-bezier(0.4,0,0.2,1)';
   });
   document.querySelectorAll('.face-cartel').forEach(el=>{
-    el.style.transition = `opacity ${CONFIG.CARTEL_FADE_SPEED} ease`;
-    el.style.width      = CONFIG.CARTEL_WIDTH + 'px';
+    el.style.transition = 'opacity ' + CONFIG.CARTEL_FADE_SPEED + ' ease';
   });
 
-  // Labels hotspots
   document.querySelectorAll('.hotspot .label').forEach(el=>{
-    el.style.fontSize  = CONFIG.LABEL_FONT_SIZE;
-    el.style.color     = CONFIG.LABEL_COLOR;
-    el.style.bottom    = CONFIG.LABEL_OFFSET_Y;
+    el.style.fontSize = CONFIG.LABEL_FONT_SIZE;
+    el.style.color    = CONFIG.LABEL_COLOR;
+    el.style.bottom   = CONFIG.LABEL_OFFSET_Y;
   });
 
-  // Grain
-  const grainEl = document.querySelector('.grain');
-  if(grainEl){
-    grainEl.style.opacity         = CONFIG.GRAIN_OPACITY;
-    grainEl.style.backgroundSize  = CONFIG.GRAIN_SIZE;
-    grainEl.style.animationDuration = CONFIG.GRAIN_SPEED;
+  var grain = document.querySelector('.grain');
+  if(grain){
+    grain.style.opacity           = CONFIG.GRAIN_OPACITY;
+    grain.style.backgroundSize    = CONFIG.GRAIN_SIZE;
+    grain.style.animationDuration = CONFIG.GRAIN_SPEED;
   }
 
-  // Hint
-  const hintEl = document.getElementById('hint');
-  hintEl.textContent  = CONFIG.HINT_TEXT;
-  hintEl.style.fontSize = CONFIG.HINT_FONT_SIZE;
-  hintEl.style.transition = `color ${CONFIG.HINT_FADE} ease`;
+  var hint = document.getElementById('hint');
+  hint.textContent      = CONFIG.HINT_TEXT;
+  hint.style.fontSize   = CONFIG.HINT_FONT_SIZE;
+  hint.style.transition = 'color ' + CONFIG.HINT_FADE + ' ease';
 
-  // Curseur pulsation
-  const style = document.createElement('style');
-  style.textContent = `
-    #cursor { width:${CONFIG.CURSOR_REST_SIZE}; height:${CONFIG.CURSOR_REST_SIZE}; }
-    #cursor.active {
-      width:${CONFIG.CURSOR_PULSE_SIZE}; height:${CONFIG.CURSOR_PULSE_SIZE};
-      animation: cursor-pulse ${CONFIG.CURSOR_PULSE_SPEED} ease-in-out infinite;
-    }
-    @keyframes cursor-pulse {
-      0%,100% { transform:translate(-50%,-50%) scale(1); }
-      50%     { transform:translate(-50%,-50%) scale(${CONFIG.CURSOR_PULSE_SCALE}); }
-    }
-  `;
-  document.head.appendChild(style);
+  var dynStyle = document.createElement('style');
+  dynStyle.textContent =
+    '#cursor { width:' + CONFIG.CURSOR_REST_SIZE + '; height:' + CONFIG.CURSOR_REST_SIZE + '; }' +
+    '#cursor.active {' +
+    '  width:' + CONFIG.CURSOR_PULSE_SIZE + '; height:' + CONFIG.CURSOR_PULSE_SIZE + ';' +
+    '  animation: cursor-pulse ' + CONFIG.CURSOR_PULSE_SPEED + ' ease-in-out infinite;' +
+    '}' +
+    '@keyframes cursor-pulse {' +
+    '  0%,100% { transform:translate(-50%,-50%) scale(1); }' +
+    '  50%     { transform:translate(-50%,-50%) scale(' + CONFIG.CURSOR_PULSE_SCALE + '); }' +
+    '}';
+  document.head.appendChild(dynStyle);
 
-  // Vidéo
-  const videoEl = document.getElementById('bgVideo');
-  videoEl.style.filter  = `brightness(${CONFIG.VIDEO_BRIGHTNESS}) contrast(${CONFIG.VIDEO_CONTRAST})`;
-  videoEl.style.padding = `${CONFIG.VIDEO_PADDING_H} ${CONFIG.VIDEO_PADDING_V}`;
-  videoEl.volume        = CONFIG.VOL_VIDEO;
+  var vid = document.getElementById('bgVideo');
+  vid.style.filter  = 'brightness(' + CONFIG.VIDEO_BRIGHTNESS + ') contrast(' + CONFIG.VIDEO_CONTRAST + ')';
+  vid.style.padding = CONFIG.VIDEO_PADDING_H + ' ' + CONFIG.VIDEO_PADDING_V;
+  vid.volume        = CONFIG.VOL_VIDEO;
 
-  // Écran de démarrage
-  document.querySelector('.sound-notice').childNodes[0].textContent = CONFIG.START_NOTICE_TEXT + ' ';
-  document.querySelector('.sound-notice span').textContent = CONFIG.START_NOTICE_SUB;
-  document.querySelector('#start-screen p').textContent = CONFIG.START_CTA_TEXT;
+  // Écran de démarrage — intro
+  var intro = document.getElementById('start-intro');
+  intro.textContent        = CONFIG.START_INTRO_TEXT;
+  intro.style.fontSize     = CONFIG.START_INTRO_FONT;
+  intro.style.color        = CONFIG.START_INTRO_COLOR;
+  intro.style.fontFamily   = CONFIG.START_INTRO_FAMILY;
+
+  // Écran de démarrage — notice son
+  var notice = document.querySelector('.sound-notice');
+  notice.childNodes[0].textContent = CONFIG.START_NOTICE_TEXT + ' ';
+  notice.style.fontSize    = CONFIG.START_NOTICE_FONT;
+  notice.style.color       = CONFIG.START_NOTICE_COLOR;
+  notice.style.fontFamily  = CONFIG.START_NOTICE_FAMILY;
+  var noticeSub = notice.querySelector('span');
+  noticeSub.textContent    = CONFIG.START_NOTICE_SUB;
+  noticeSub.style.color    = CONFIG.START_NOTICE_SUB_COLOR;
+
+  // Écran de démarrage — CTA
+  var cta = document.getElementById('start-cta');
+  cta.textContent          = CONFIG.START_CTA_TEXT;
+  cta.style.fontSize       = CONFIG.START_CTA_FONT;
+  cta.style.color          = CONFIG.START_CTA_COLOR;
+  cta.style.fontFamily     = CONFIG.START_CTA_FAMILY;
+
+  // Cartels — police des textes SVG
+  document.querySelectorAll('.cartel-title').forEach(function(el){
+    el.setAttribute('font-size',   CONFIG.CARTEL_FONT_TITLE);
+    el.setAttribute('fill',        CONFIG.CARTEL_FONT_TITLE_COLOR);
+    el.setAttribute('font-family', CONFIG.CARTEL_FONT_TITLE_FAMILY);
+  });
+  document.querySelectorAll('.cartel-body').forEach(function(el){
+    el.setAttribute('font-size',   CONFIG.CARTEL_FONT_BODY);
+    el.setAttribute('fill',        CONFIG.CARTEL_FONT_BODY_COLOR);
+    el.setAttribute('font-family', CONFIG.CARTEL_FONT_BODY_FAMILY);
+  });
 })();
+
+
+/* ══════════════════════════════════════════════════
+   VARIABLES D'ÉTAT GLOBALES
+   Toutes déclarées ici, avant le premier appel de resize
+══════════════════════════════════════════════════ */
+var mouseX = window.innerWidth  / 2;
+var mouseY = window.innerHeight / 2;
+var torchX = mouseX, torchY = mouseY;
+var torchBaseRadius = 0;   // pixels courants
+var torchProgress   = 0;   // fraction 0→1, conservée au resize
+var videoPlaying    = false;
+var experienceStarted = false;
+
 
 /* ══════════════════════════════════════════════════
    CANVAS — torche organique multi-passes
 ══════════════════════════════════════════════════ */
-const canvas      = document.getElementById('overlay-canvas');
-const ctx         = canvas.getContext('2d');
-const cursorEl    = document.getElementById('cursor');
-const sub1        = document.getElementById('subtitle-1');
-const sub2        = document.getElementById('subtitle-2');
-const sub3        = document.getElementById('subtitle-3');
-const startScreen = document.getElementById('start-screen');
+var canvas  = document.getElementById('overlay-canvas');
+var ctx     = canvas.getContext('2d');
+var cursorEl= document.getElementById('cursor');
+var sub1    = document.getElementById('subtitle-1');
+var sub2    = document.getElementById('subtitle-2');
+var sub3    = document.getElementById('subtitle-3');
+var startScreen = document.getElementById('start-screen');
 
-function resizeCanvas() { canvas.width=window.innerWidth; canvas.height=window.innerHeight; }
+function torchRadiusPx(){
+  return CONFIG.TORCH_RADIUS * Math.min(window.innerWidth, window.innerHeight);
+}
+
+/* ══════════════════════════════════════════════════
+   getVideoRect() — zone réelle de la vidéo en px
+   (object-fit:contain + padding)
+══════════════════════════════════════════════════ */
+function getVideoRect(){
+  var vid = document.getElementById('bgVideo');
+  var cs  = getComputedStyle(vid);
+  var padTop    = parseFloat(cs.paddingTop)    || 0;
+  var padRight  = parseFloat(cs.paddingRight)  || 0;
+  var padBottom = parseFloat(cs.paddingBottom) || 0;
+  var padLeft   = parseFloat(cs.paddingLeft)   || 0;
+  var boxW = vid.clientWidth  - padLeft - padRight;
+  var boxH = vid.clientHeight - padTop  - padBottom;
+  var vidW = vid.videoWidth  || vid.clientWidth;
+  var vidH = vid.videoHeight || vid.clientHeight;
+  var vidRatio = vidW / vidH;
+  var boxRatio = boxW / boxH;
+  var renderW, renderH;
+  if(vidRatio > boxRatio){ renderW = boxW; renderH = boxW / vidRatio; }
+  else                   { renderH = boxH; renderW = boxH * vidRatio; }
+  return {
+    x: padLeft + (boxW - renderW) / 2,
+    y: padTop  + (boxH - renderH) / 2,
+    w: renderW,
+    h: renderH
+  };
+}
+
+/* FACES déclaré ici (avant resizeCanvas et updateFaceHover) */
+var FACES = {
+  caleb: {
+    xPct:0.285, yPct:0.49, rx:0.065, ry:0.15,
+    cartel: document.getElementById('cartel-caleb'), hovered:false,
+    get offsetX(){ return CONFIG.CARTEL_CALEB_OFFSET_X; },
+    get offsetY(){ return CONFIG.CARTEL_CALEB_OFFSET_Y; }
+  },
+  fillette: {
+    xPct:0.395, yPct:0.49, rx:0.065, ry:0.15,
+    cartel: document.getElementById('cartel-fillette'), hovered:false,
+    get offsetX(){ return CONFIG.CARTEL_FILLETTE_OFFSET_X; },
+    get offsetY(){ return CONFIG.CARTEL_FILLETTE_OFFSET_Y; }
+  }
+};
+
+function updateFaceHover(){
+  var vr  = getVideoRect();
+  var W   = window.innerWidth, H = window.innerHeight;
+  var torchOn    = torchBaseRadius > 5;
+  var cartelW    = CONFIG.CARTEL_WIDTH    * W;
+  var cartelOffY = CONFIG.CARTEL_OFFSET_Y * H;
+  var anyHovered = false;
+  var keys = Object.keys(FACES);
+  for(var k = 0; k < keys.length; k++){
+    var face = FACES[keys[k]];
+    var cx = vr.x + face.xPct * vr.w;
+    var cy = vr.y + face.yPct * vr.h;
+    var rx = face.rx * vr.w;
+    var ry = face.ry * vr.h;
+    var dx = (mouseX - cx) / rx, dy = (mouseY - cy) / ry;
+    face.hovered = (dx*dx + dy*dy) <= 1.0;
+
+    var showCartel = torchOn && face.hovered && !videoPlaying;
+    var offX = (face.offsetX || 0) * W;   // fraction largeur → px
+    var offY = (face.offsetY || 0) * H;   // fraction hauteur → px
+    face.cartel.style.left  = (cx - cartelW / 2 + offX) + 'px';
+    face.cartel.style.top   = (cy + ry + cartelOffY + offY) + 'px';
+    face.cartel.style.width = cartelW + 'px';
+    face.cartel.classList.toggle('visible', showCartel);
+
+    if(torchOn && face.hovered) anyHovered = true;
+  }
+  cursorEl.classList.toggle('active', anyHovered);
+}
+
+function repositionHotspots(){
+  var vr = getVideoRect();
+  var defs = [
+    { id:'face-L2-3', xPct:0.22, yPct:0.34, wPct:0.13, hPct:0.30 },
+    { id:'face-L2-6', xPct:0.33, yPct:0.34, wPct:0.13, hPct:0.30 }
+  ];
+  defs.forEach(function(d){
+    var el = document.getElementById(d.id);
+    if(!el) return;
+    el.style.left   = (vr.x + d.xPct * vr.w) + 'px';
+    el.style.top    = (vr.y + d.yPct * vr.h) + 'px';
+    el.style.width  = (d.wPct * vr.w) + 'px';
+    el.style.height = (d.hPct * vr.h) + 'px';
+  });
+}
+
+function resizeCanvas(){
+  canvas.width  = window.innerWidth;
+  canvas.height = window.innerHeight;
+  torchBaseRadius = torchProgress * torchRadiusPx();
+  repositionHotspots();
+  updateFaceHover();
+}
 resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
 
-let mouseX=window.innerWidth/2, mouseY=window.innerHeight/2;
-let torchX=mouseX, torchY=mouseY;
-let torchBaseRadius=0;
-let experienceStarted=false;
+document.getElementById('bgVideo').addEventListener('loadedmetadata', function(){
+  repositionHotspots();
+  updateFaceHover();
+});
 
-const O = {
+document.addEventListener('mousemove', function(e){
+  mouseX = e.clientX; mouseY = e.clientY;
+  cursorEl.style.left = mouseX + 'px';
+  cursorEl.style.top  = mouseY + 'px';
+  updateFaceHover();
+});
+
+var O = {
   b1:{s:0.00044,p:Math.random()*6.28,a:0.062}, b2:{s:0.00071,p:Math.random()*6.28,a:0.038},
   f1:{s:0.0088, p:Math.random()*6.28,a:0.024}, f2:{s:0.0141, p:Math.random()*6.28,a:0.017},
   f3:{s:0.0229, p:Math.random()*6.28,a:0.011}, f4:{s:0.0373, p:Math.random()*6.28,a:0.006},
   dx:{s:0.00058,p:Math.random()*6.28,a:3.2},   dy:{s:0.00074,p:Math.random()*6.28,a:2.5},
-  w: {s:0.00041,p:Math.random()*6.28,a:1.0},
+  w: {s:0.00041,p:Math.random()*6.28,a:1.0}
 };
 function osc(o,t){ return Math.sin(t*o.s+o.p)*o.a; }
 
-document.addEventListener('mousemove', e => {
-  mouseX=e.clientX; mouseY=e.clientY;
-  cursorEl.style.left=mouseX+'px'; cursorEl.style.top=mouseY+'px';
-  updateFaceHover();
-});
-
 function safeGrad(x0,y0,r0,x1,y1,r1){
-  if([x0,y0,r0,x1,y1,r1].some(v=>!isFinite(v)||isNaN(v))) return null;
+  if([x0,y0,r0,x1,y1,r1].some(function(v){return !isFinite(v)||isNaN(v);})) return null;
   return ctx.createRadialGradient(x0,y0,Math.max(0,r0),x1,y1,Math.max(0.001,r1));
 }
 
 function renderTorch(t){
-  const W=canvas.width, H=canvas.height;
-  torchX+=(mouseX-torchX)*CONFIG.TORCH_FOLLOW_SPEED; torchY+=(mouseY-torchY)*CONFIG.TORCH_FOLLOW_SPEED;
-  const active=torchBaseRadius>5;
-  const jx=active?osc(O.dx,t):0, jy=active?osc(O.dy,t):0;
-  const cx=torchX+jx, cy=torchY+jy;
-  const intensity=1+osc(O.b1,t)+osc(O.b2,t)+osc(O.f1,t)+osc(O.f2,t)+osc(O.f3,t)+osc(O.f4,t);
-  const r=Math.max(0,torchBaseRadius*Math.max(0.72,intensity));
-  const warmPulse=osc(O.w,t);
+  var W=canvas.width, H=canvas.height;
+  torchX += (mouseX-torchX)*CONFIG.TORCH_FOLLOW_SPEED;
+  torchY += (mouseY-torchY)*CONFIG.TORCH_FOLLOW_SPEED;
+  var active = torchBaseRadius > 5;
+  var jx = active ? osc(O.dx,t) : 0, jy = active ? osc(O.dy,t) : 0;
+  var cx = torchX+jx, cy = torchY+jy;
+  var intensity = 1+osc(O.b1,t)+osc(O.b2,t)+osc(O.f1,t)+osc(O.f2,t)+osc(O.f3,t)+osc(O.f4,t);
+  var r = Math.max(0, torchBaseRadius * Math.max(0.72, intensity));
+  var warmPulse = osc(O.w,t);
 
   ctx.clearRect(0,0,W,H); ctx.fillStyle='#000'; ctx.fillRect(0,0,W,H);
   if(r<1) return;
 
   ctx.globalCompositeOperation='destination-out';
-
-  const r1=r*3.4, g1=safeGrad(cx,cy,0,cx,cy,r1);
+  var r1=r*3.4, g1=safeGrad(cx,cy,0,cx,cy,r1);
   if(g1){g1.addColorStop(0,'rgba(0,0,0,0.28)');g1.addColorStop(0.22,'rgba(0,0,0,0.16)');g1.addColorStop(0.55,'rgba(0,0,0,0.07)');g1.addColorStop(0.82,'rgba(0,0,0,0.02)');g1.addColorStop(1,'rgba(0,0,0,0.00)');ctx.beginPath();ctx.arc(cx,cy,r1,0,Math.PI*2);ctx.fillStyle=g1;ctx.fill();}
-  const r2=r*2.0, g2=safeGrad(cx,cy,0,cx,cy,r2);
+  var r2=r*2.0, g2=safeGrad(cx,cy,0,cx,cy,r2);
   if(g2){g2.addColorStop(0,'rgba(0,0,0,0.44)');g2.addColorStop(0.35,'rgba(0,0,0,0.28)');g2.addColorStop(0.68,'rgba(0,0,0,0.10)');g2.addColorStop(1,'rgba(0,0,0,0.00)');ctx.beginPath();ctx.arc(cx,cy,r2,0,Math.PI*2);ctx.fillStyle=g2;ctx.fill();}
-  const g3=safeGrad(cx,cy,0,cx,cy,r);
+  var g3=safeGrad(cx,cy,0,cx,cy,r);
   if(g3){g3.addColorStop(0,'rgba(0,0,0,0.78)');g3.addColorStop(0.28,'rgba(0,0,0,0.68)');g3.addColorStop(0.58,'rgba(0,0,0,0.42)');g3.addColorStop(0.82,'rgba(0,0,0,0.16)');g3.addColorStop(1,'rgba(0,0,0,0.00)');ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fillStyle=g3;ctx.fill();}
-  const rCore=Math.max(1,r*(0.28+Math.abs(osc(O.f1,t))*0.15)), gC=safeGrad(cx,cy,0,cx,cy,rCore);
+  var rCore=Math.max(1,r*(0.28+Math.abs(osc(O.f1,t))*0.15)), gC=safeGrad(cx,cy,0,cx,cy,rCore);
   if(gC){gC.addColorStop(0,'rgba(0,0,0,0.18)');gC.addColorStop(1,'rgba(0,0,0,0.00)');ctx.beginPath();ctx.arc(cx,cy,rCore,0,Math.PI*2);ctx.fillStyle=gC;ctx.fill();}
 
   ctx.globalCompositeOperation='source-over';
+  var wR=Math.max(1,r*0.62*Math.max(0.55,intensity)), wAlpha=0.048+Math.abs(warmPulse)*0.028;
+  var gW=safeGrad(cx,cy,0,cx,cy,wR);
+  if(gW){var gb=Math.floor(Math.max(0,Math.min(255,185+warmPulse*14)));gW.addColorStop(0,'rgba(255,'+gb+',70,'+(wAlpha*1.5).toFixed(3)+')');gW.addColorStop(0.45,'rgba(255,170,55,'+wAlpha.toFixed(3)+')');gW.addColorStop(1,'rgba(255,130,20,0.000)');ctx.beginPath();ctx.arc(cx,cy,wR,0,Math.PI*2);ctx.fillStyle=gW;ctx.fill();}
 
-  const wR=Math.max(1,r*0.62*Math.max(0.55,intensity)), wAlpha=0.048+Math.abs(warmPulse)*0.028;
-  const gW=safeGrad(cx,cy,0,cx,cy,wR);
-  if(gW){const gb=Math.floor(Math.max(0,Math.min(255,185+warmPulse*14)));gW.addColorStop(0,`rgba(255,${gb},70,${(wAlpha*1.5).toFixed(3)})`);gW.addColorStop(0.45,`rgba(255,170,55,${wAlpha.toFixed(3)})`);gW.addColorStop(1,'rgba(255,130,20,0.000)');ctx.beginPath();ctx.arc(cx,cy,wR,0,Math.PI*2);ctx.fillStyle=gW;ctx.fill();}
-
-  const vR_in=Math.max(0,r*1.05), vR_out=Math.max(vR_in+1,Math.sqrt(W*W+H*H)*0.72);
-  const gV=safeGrad(cx,cy,vR_in,cx,cy,vR_out);
+  var vR_in=Math.max(0,r*1.05), vR_out=Math.max(vR_in+1,Math.sqrt(W*W+H*H)*0.72);
+  var gV=safeGrad(cx,cy,vR_in,cx,cy,vR_out);
   if(gV){gV.addColorStop(0,'rgba(0,0,0,0.00)');gV.addColorStop(0.2,'rgba(0,0,0,0.18)');gV.addColorStop(0.6,'rgba(0,0,0,0.55)');gV.addColorStop(1,'rgba(0,0,0,0.92)');ctx.fillStyle=gV;ctx.fillRect(0,0,W,H);}
 }
 
-function growTorch(target,durationMs){
-  const start=torchBaseRadius, diff=target-start, t0=performance.now();
-  function step(now){const p=Math.min((now-t0)/durationMs,1);const e=p<0.5?2*p*p:1-Math.pow(-2*p+2,2)/2;torchBaseRadius=start+diff*e;if(p<1)requestAnimationFrame(step);}
+/* growTorch — anime torchProgress (fraction), recalcule px à chaque frame */
+function growTorch(targetFraction, durationMs){
+  var startProgress = torchProgress;
+  var diff = targetFraction - startProgress;
+  var t0   = performance.now();
+  function step(now){
+    var p = Math.min((now - t0) / durationMs, 1);
+    var e = p < 0.5 ? 2*p*p : 1 - Math.pow(-2*p+2,2)/2;
+    torchProgress   = startProgress + diff * e;
+    torchBaseRadius = torchProgress * torchRadiusPx();
+    if(p < 1) requestAnimationFrame(step);
+  }
   requestAnimationFrame(step);
 }
 
-(function loop(t){renderTorch(t);requestAnimationFrame(loop);})();
+(function loop(t){ renderTorch(t); requestAnimationFrame(loop); })();
+
 
 /* ══════════════════════════════════════════
-   AUDIO — Web Audio API pour public + chuchotement (loops & ducking)
-   + HTMLAudio pour les sons narratifs
+   AUDIO
 ══════════════════════════════════════════ */
-let audioCtx=null;
-let publicSource=null, publicGain=null;
-let whisperBuffer=null;
+var audioCtx=null, publicSource=null, publicGain=null, whisperBuffer=null;
 
 function getCtx(){
-  if(!audioCtx) audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+  if(!audioCtx) audioCtx = new(window.AudioContext||window.webkitAudioContext)();
   return audioCtx;
 }
 
-async function loadBuffer(url){
-  const ac=getCtx();
-  try{ const r=await fetch(url); const ab=await r.arrayBuffer(); return ac.decodeAudioData(ab); }
-  catch(e){ return null; }
+function loadBuffer(url){
+  var ac = getCtx();
+  return fetch(url)
+    .then(function(r){ return r.arrayBuffer(); })
+    .then(function(ab){ return ac.decodeAudioData(ab); })
+    .catch(function(){ return null; });
 }
 
-/* Lance public.mp3 en loop dès le début */
-async function startPublicLoop(){
-  const ac=getCtx();
-  const buf=await loadBuffer('public.mp3');
-  if(!buf) return;
-  publicSource=ac.createBufferSource();
-  publicSource.buffer=buf; publicSource.loop=true;
-  publicGain=ac.createGain();
-  publicGain.gain.setValueAtTime(0,ac.currentTime);
-  publicGain.gain.linearRampToValueAtTime(CONFIG.VOL_PUBLIC, ac.currentTime+CONFIG.FADE_PUBLIC_IN/1000);
-  publicSource.connect(publicGain); publicGain.connect(ac.destination);
-  publicSource.start();
+function startPublicLoop(){
+  var ac = getCtx();
+  loadBuffer('public.mp3').then(function(buf){
+    if(!buf) return;
+    publicSource = ac.createBufferSource();
+    publicSource.buffer = buf; publicSource.loop = true;
+    publicGain = ac.createGain();
+    publicGain.gain.setValueAtTime(0, ac.currentTime);
+    publicGain.gain.linearRampToValueAtTime(CONFIG.VOL_PUBLIC, ac.currentTime + CONFIG.FADE_PUBLIC_IN/1000);
+    publicSource.connect(publicGain); publicGain.connect(ac.destination);
+    publicSource.start();
+  });
 }
 
-/* Chuchotement — spawn unique avec fade in/out naturel */
 function spawnWhisper(){
-  const ac=getCtx();
+  var ac = getCtx();
   if(!whisperBuffer) return;
-  const src=ac.createBufferSource(); src.buffer=whisperBuffer; src.loop=false;
-  const gain=ac.createGain();
-  const dur=whisperBuffer.duration;
-  gain.gain.setValueAtTime(0,ac.currentTime);
-  gain.gain.linearRampToValueAtTime(CONFIG.VOL_WHISPER, ac.currentTime+CONFIG.WHISPER_FADE_IN/1000);
-  gain.gain.setValueAtTime(CONFIG.VOL_WHISPER, ac.currentTime+Math.max(0,dur-CONFIG.WHISPER_FADE_OUT/1000));
-  gain.gain.linearRampToValueAtTime(0,ac.currentTime+dur);
+  var src  = ac.createBufferSource(); src.buffer = whisperBuffer; src.loop = false;
+  var gain = ac.createGain();
+  var dur  = whisperBuffer.duration;
+  gain.gain.setValueAtTime(0, ac.currentTime);
+  gain.gain.linearRampToValueAtTime(CONFIG.VOL_WHISPER, ac.currentTime + CONFIG.WHISPER_FADE_IN/1000);
+  gain.gain.setValueAtTime(CONFIG.VOL_WHISPER, ac.currentTime + Math.max(0, dur - CONFIG.WHISPER_FADE_OUT/1000));
+  gain.gain.linearRampToValueAtTime(0, ac.currentTime + dur);
   src.connect(gain); gain.connect(ac.destination); src.start();
 }
 
 function scheduleWhispers(){
-  // Premier chuchotement à 30s
-  setTimeout(()=>{
+  setTimeout(function(){
     spawnWhisper();
     function next(){
-      const d=CONFIG.WHISPER_MIN+Math.random()*(CONFIG.WHISPER_MAX-CONFIG.WHISPER_MIN);
-      setTimeout(()=>{ spawnWhisper(); next(); },d);
+      var d = CONFIG.WHISPER_MIN + Math.random()*(CONFIG.WHISPER_MAX - CONFIG.WHISPER_MIN);
+      setTimeout(function(){ spawnWhisper(); next(); }, d);
     }
     next();
-  },CONFIG.WHISPER_FIRST);
+  }, CONFIG.WHISPER_FIRST);
 }
 
-/* Ducking — baisse tous les sons ambiants quand la vidéo joue */
-const narrativeEls=[
-  { el: document.getElementById('snd-perturbe'), vol: ()=>CONFIG.VOL_PERTURBE },
-  { el: document.getElementById('snd-candice'),  vol: ()=>CONFIG.VOL_CANDICE  },
-  { el: document.getElementById('snd-delicat'),  vol: ()=>CONFIG.VOL_DELICAT  },
-  { el: document.getElementById('snd-pratique'), vol: ()=>CONFIG.VOL_PRATIQUE },
+var narrativeEls = [
+  { el: document.getElementById('snd-perturbe'), vol: function(){ return CONFIG.VOL_PERTURBE; } },
+  { el: document.getElementById('snd-candice'),  vol: function(){ return CONFIG.VOL_CANDICE;  } },
+  { el: document.getElementById('snd-delicat'),  vol: function(){ return CONFIG.VOL_DELICAT;  } },
+  { el: document.getElementById('snd-pratique'), vol: function(){ return CONFIG.VOL_PRATIQUE; } }
 ];
 
-function duckAmbient(doDuck, durationMs=CONFIG.FADE_DUCK_UP){
-  const ac=getCtx();
+function duckAmbient(doDuck, durationMs){
+  if(!durationMs) durationMs = CONFIG.FADE_DUCK_UP;
+  var ac = getCtx();
   if(!publicGain) return;
-  const target=doDuck?CONFIG.VOL_DUCK_AMBIENT:CONFIG.VOL_PUBLIC;
+  var target = doDuck ? CONFIG.VOL_DUCK_AMBIENT : CONFIG.VOL_PUBLIC;
   publicGain.gain.cancelScheduledValues(ac.currentTime);
-  publicGain.gain.setValueAtTime(publicGain.gain.value,ac.currentTime);
-  publicGain.gain.linearRampToValueAtTime(target, ac.currentTime+durationMs/1000);
-
-  // Chaque narratif est ducké vers VOL_DUCK_NARR, puis remonte vers son propre volume
-  narrativeEls.forEach(({el, vol})=>{
-    if(el.paused) return;
-    const targetVol = doDuck ? CONFIG.VOL_DUCK_NARR : vol();
-    const steps=40, sv=el.volume, diff=targetVol-sv, interval=durationMs/steps; let n=0;
-    const t=setInterval(()=>{n++;el.volume=Math.max(0,Math.min(1,sv+diff*(n/steps)));if(n>=steps)clearInterval(t);},interval);
+  publicGain.gain.setValueAtTime(publicGain.gain.value, ac.currentTime);
+  publicGain.gain.linearRampToValueAtTime(target, ac.currentTime + durationMs/1000);
+  narrativeEls.forEach(function(item){
+    if(item.el.paused) return;
+    var targetVol = doDuck ? CONFIG.VOL_DUCK_NARR : item.vol();
+    var steps=40, sv=item.el.volume, diff=targetVol-sv, interval=durationMs/steps, n=0;
+    var ti = setInterval(function(){
+      n++; item.el.volume = Math.max(0, Math.min(1, sv + diff*(n/steps)));
+      if(n >= steps) clearInterval(ti);
+    }, interval);
   });
 }
 
-/* fadeInEl vérifie si la vidéo joue et démarre au bon volume */
 function fadeInNarr(el, ms, vol){
-  // Si la vidéo joue au moment où le narrateur démarre, on part du volume ducké
-  const startVol = videoPlaying ? CONFIG.VOL_DUCK_NARR : 0;
-  const targetVol = videoPlaying ? CONFIG.VOL_DUCK_NARR : vol;
+  var startVol  = videoPlaying ? CONFIG.VOL_DUCK_NARR : 0;
+  var targetVol = videoPlaying ? CONFIG.VOL_DUCK_NARR : vol;
   el.volume = startVol;
-  el.play().catch(()=>{});
-  if(videoPlaying) return; // pas de fade si déjà ducké, il reste bas
-  const steps=50, step=targetVol/steps; let n=0;
-  const t=setInterval(()=>{n++;el.volume=Math.min(targetVol,n*step);if(n>=steps)clearInterval(t);},ms/steps);
+  el.play().catch(function(){});
+  if(videoPlaying) return;
+  var steps=50, step=targetVol/steps, n=0;
+  var ti = setInterval(function(){
+    n++; el.volume = Math.min(targetVol, n*step);
+    if(n >= steps) clearInterval(ti);
+  }, ms/steps);
 }
 
-/* Sons narratifs */
-const sndPerturbe=document.getElementById('snd-perturbe');
-const sndCandice =document.getElementById('snd-candice');
-const sndDelicat =document.getElementById('snd-delicat');
-const sndPratique=document.getElementById('snd-pratique');
+var sndPerturbe = document.getElementById('snd-perturbe');
+var sndCandice  = document.getElementById('snd-candice');
+var sndDelicat  = document.getElementById('snd-delicat');
+var sndPratique = document.getElementById('snd-pratique');
 
-function fadeInEl(el,ms,vol){
-  el.volume=0; el.play().catch(()=>{});
-  const steps=50,step=vol/steps;let n=0;
-  const t=setInterval(()=>{n++;el.volume=Math.min(vol,n*step);if(n>=steps)clearInterval(t);},ms/steps);
+function fadeInEl(el, ms, vol){
+  el.volume=0; el.play().catch(function(){});
+  var steps=50, step=vol/steps, n=0;
+  var ti = setInterval(function(){
+    n++; el.volume = Math.min(vol, n*step);
+    if(n >= steps) clearInterval(ti);
+  }, ms/steps);
 }
-function fadeOutEl(el,ms,cb){
-  const steps=50,sv=el.volume,step=sv/steps;let n=0;
-  const t=setInterval(()=>{n++;el.volume=Math.max(0,sv-n*step);if(n>=steps){clearInterval(t);el.pause();el.currentTime=0;if(cb)cb();}},ms/steps);
+function fadeOutEl(el, ms, cb){
+  var steps=50, sv=el.volume, step=sv/steps, n=0;
+  var ti = setInterval(function(){
+    n++; el.volume = Math.max(0, sv - n*step);
+    if(n >= steps){ clearInterval(ti); el.pause(); el.currentTime=0; if(cb) cb(); }
+  }, ms/steps);
 }
+
 
 /* ══════════════════════════════════════════
-   CARTELS — hover sur les visages
+   VIDÉO INTERACTIVE
 ══════════════════════════════════════════ */
-const FACES={
-  caleb:{
-    // Centre du hotspot L2-3 : left 22% + width 13%/2 = 28.5%, top 34% + height 30%/2 = 49%
-    xPct:0.285, yPct:0.49, rx:0.065, ry:0.15,
-    cartel:document.getElementById('cartel-caleb'), hovered:false
-  },
-  fillette:{
-    // Centre du hotspot L2-6 : left 33% + 13%/2 = 39.5%
-    xPct:0.395, yPct:0.49, rx:0.065, ry:0.15,
-    cartel:document.getElementById('cartel-fillette'), hovered:false
-  }
-};
+var video       = document.getElementById('bgVideo');
+var activeEnd   = null, returning = false, activeHotspot = null;
 
-function updateFaceHover(){
-  const W=window.innerWidth, H=window.innerHeight;
-  const torchOn=torchBaseRadius>5;
-  let anyCartel=false, anyHovered=false;
-  for(const[,face] of Object.entries(FACES)){
-    const cx=face.xPct*W, cy=face.yPct*H;
-    const rx=face.rx*W, ry=face.ry*H;
-    const dx=(mouseX-cx)/rx, dy=(mouseY-cy)/ry;
-    face.hovered=(dx*dx+dy*dy)<=1.0;
-
-    // Cartel visible seulement si torche active, survolé, ET vidéo ne joue pas
-    const showCartel=torchOn&&face.hovered&&!videoPlaying;
-    face.cartel.style.left=(cx-110)+'px';
-    face.cartel.style.top =(cy+ry+CONFIG.CARTEL_OFFSET_Y)+'px';
-    face.cartel.classList.toggle('visible',showCartel);
-    if(showCartel) anyCartel=true;
-
-    // Pulsation : torche active + survolé (même si vidéo joue)
-    if(torchOn&&face.hovered) anyHovered=true;
-  }
-  cursorEl.classList.toggle('active',anyHovered);
-}
-
-/* ══════════════════════════════════════════
-   VIDÉO INTERACTIVE — avec toggle stop + ducking
-══════════════════════════════════════════ */
-const video=document.getElementById('bgVideo');
-let activeEnd=null, returning=false, videoPlaying=false, activeHotspot=null;
-
-video.addEventListener('loadedmetadata',()=>{ video.currentTime=0; video.pause(); });
-
-video.addEventListener('timeupdate',()=>{
-  if(activeEnd!==null&&!returning&&video.currentTime>=activeEnd){
-    stopVideo();
-  }
+video.addEventListener('loadedmetadata', function(){ video.currentTime=0; video.pause(); });
+video.addEventListener('timeupdate', function(){
+  if(activeEnd !== null && !returning && video.currentTime >= activeEnd) stopVideo();
 });
 
 function stopVideo(){
-  returning=true;
-  video.pause();
+  returning=true; video.pause();
   duckAmbient(false, CONFIG.FADE_DUCK_UP);
-  videoPlaying=false;
-  activeHotspot=null;
-  setTimeout(()=>{
-    video.currentTime=0;
-    activeEnd=null;
-    returning=false;
-  }, CONFIG.VIDEO_STOP_DELAY);
+  videoPlaying=false; activeHotspot=null;
+  setTimeout(function(){ video.currentTime=0; activeEnd=null; returning=false; }, CONFIG.VIDEO_STOP_DELAY);
 }
 
-document.querySelectorAll('.hotspot').forEach(hotspot=>{
-  const start=parseFloat(hotspot.dataset.start);
-  const end=parseFloat(hotspot.dataset.end);
+document.querySelectorAll('.hotspot').forEach(function(hotspot){
+  var start = parseFloat(hotspot.dataset.start);
+  var end   = parseFloat(hotspot.dataset.end);
   if(isNaN(start)||isNaN(end)) return;
-
-  hotspot.addEventListener('click',()=>{
-    if(torchBaseRadius<5) return;
-
-    // Si ce même hotspot est déjà en cours → stop et retour
-    if(videoPlaying&&activeHotspot===hotspot){
-      stopVideo();
-      return;
-    }
-
-    // Lancer la vidéo
-    returning=false;
-    activeEnd=end;
-    activeHotspot=hotspot;
-    videoPlaying=true;
-
+  hotspot.addEventListener('click', function(){
+    if(torchBaseRadius < 5) return;
+    if(videoPlaying && activeHotspot === hotspot){ stopVideo(); return; }
+    returning=false; activeEnd=end; activeHotspot=hotspot; videoPlaying=true;
     duckAmbient(true, CONFIG.FADE_DUCK_DOWN);
-
-    video.pause(); video.currentTime=start;
-    const onSeeked=()=>{
-      video.removeEventListener('seeked',onSeeked);
+    video.pause(); video.currentTime = start;
+    function onSeeked(){
+      video.removeEventListener('seeked', onSeeked);
       video.volume = CONFIG.VOL_VIDEO;
-      video.play().catch(()=>{});
-    };
-    video.addEventListener('seeked',onSeeked);
+      video.play().catch(function(){});
+    }
+    video.addEventListener('seeked', onSeeked);
   });
 });
+
 
 /* ══════════════════════════════════════════
    TYPING cinématographique
 ══════════════════════════════════════════ */
-function humanDelay(c,prev){
-  const r=Math.random;
-  const S=1/CONFIG.TYPING_SPEED;
+function humanDelay(c, prev){
+  var r=Math.random, S=1/CONFIG.TYPING_SPEED;
   if(c==='\n')          return (300+r()*240)*S;
   if('…'.includes(c))   return (280+r()*230)*S;
   if('—'.includes(c))   return (180+r()*120)*S;
   if('.!?'.includes(c)) return (120+r()*170)*S;
   if(',;:'.includes(c)) return (75+r()*100)*S;
-  if(c===' '){if(prev&&'.!?,;:'.includes(prev))return (170+r()*130)*S;return (85+r()*130)*S;}
-  const base=(30+r()*50)*S;
-  if(r()<0.08) return base*2.7;
-  if(r()<0.035)return base*0.25;
+  if(c===' '){ if(prev&&'.!?,;:'.includes(prev)) return (170+r()*130)*S; return (85+r()*130)*S; }
+  var base=(30+r()*50)*S;
+  if(r()<0.08)  return base*2.7;
+  if(r()<0.035) return base*0.25;
   return base;
 }
-function typeInto(el,text,onDone){
-  el.textContent='';el.style.opacity='1';let i=0;
-  function next(){if(i>=text.length){if(onDone)onDone();return;}el.textContent+=text[i];const d=humanDelay(text[i],text[i-1]||'');i++;setTimeout(next,d);}
+function typeInto(el, text, onDone){
+  el.textContent=''; el.style.opacity='1'; var i=0;
+  function next(){
+    if(i>=text.length){ if(onDone) onDone(); return; }
+    el.textContent += text[i];
+    var d = humanDelay(text[i], text[i-1]||'');
+    i++; setTimeout(next, d);
+  }
   next();
 }
-function hideEl(el,delay,cb){
-  setTimeout(()=>{el.style.opacity='0';setTimeout(()=>{el.textContent='';if(cb)cb();},800);},delay);
+function hideEl(el, delay, cb){
+  setTimeout(function(){
+    el.style.opacity='0';
+    setTimeout(function(){ el.textContent=''; if(cb) cb(); }, 800);
+  }, delay);
 }
+
 
 /* ══════════════════════════════════════════
    TITRE cinématographique
 ══════════════════════════════════════════ */
 function revealTitle(){
-  const el=document.getElementById('site-title');
-  // Découper CONFIG.TITLE_TEXT en parties séparées par ' — '
-  const rawParts = CONFIG.TITLE_TEXT.split(' — ');
-  const parts = [];
-  rawParts.forEach((p,i)=>{ parts.push(p); if(i<rawParts.length-1) parts.push('—'); });
-  let html='';
-  parts.forEach((part,pi)=>{
-    if(part==='—'){html+=`<span class="sep">—</span>`;}
-    else{part.split('').forEach((ch,ci)=>{html+=`<span class="char" data-i="${pi*20+ci}">${ch===' '?'&nbsp;':ch}</span>`;});}
+  var el = document.getElementById('site-title');
+  var rawParts = CONFIG.TITLE_TEXT.split(' — ');
+  var parts = [];
+  rawParts.forEach(function(p,i){ parts.push(p); if(i<rawParts.length-1) parts.push('—'); });
+  var html = '';
+  parts.forEach(function(part,pi){
+    if(part==='—'){ html += '<span class="sep">—</span>'; }
+    else{ part.split('').forEach(function(ch,ci){ html += '<span class="char" data-i="'+(pi*20+ci)+'">'+(ch===' '?'&nbsp;':ch)+'</span>'; }); }
   });
-  el.innerHTML=html;
+  el.innerHTML = html;
   el.style.color      = CONFIG.TITLE_COLOR;
-  el.style.textShadow = `0 0 18px ${CONFIG.TITLE_GLOW}`;
-  el.querySelectorAll('.char').forEach((span,i)=>{
-    setTimeout(()=>{span.style.opacity='1';span.style.transform='translateY(0)';},
+  el.style.textShadow = '0 0 18px ' + CONFIG.TITLE_GLOW;
+  el.querySelectorAll('.char').forEach(function(span,i){
+    setTimeout(function(){ span.style.opacity='1'; span.style.transform='translateY(0)'; },
       CONFIG.TITLE_INITIAL_DELAY + i*CONFIG.TITLE_CHAR_DELAY + Math.random()*25);
   });
-  el.querySelectorAll('.sep').forEach((sep,i)=>{
-    setTimeout(()=>{sep.style.opacity='0.6';},CONFIG.TITLE_INITIAL_DELAY+(i+1)*340);
+  el.querySelectorAll('.sep').forEach(function(sep,i){
+    setTimeout(function(){ sep.style.opacity='0.6'; }, CONFIG.TITLE_INITIAL_DELAY+(i+1)*340);
   });
 }
+
 
 /* ══════════════════════════════════════════
    SÉQUENCE PRINCIPALE
 ══════════════════════════════════════════ */
-async function startExperience(){
-  if(experienceStarted) return;
-  experienceStarted=true;
-  startScreen.style.display='none';
-
-  revealTitle();
-
-  // public.mp3 démarre immédiatement en loop avec fade in
-  startPublicLoop();
-
-  // Chargement chuchotement + schedule
-  loadBuffer('chuchotement.wav').then(buf=>{ whisperBuffer=buf; scheduleWhispers(); });
-
-  // Séquence narrative après silence initial
-  setTimeout(()=>{
-    const sub4=document.getElementById('subtitle-4');
-
-    fadeInNarr(sndPerturbe,CONFIG.FADE_NARR_IN,CONFIG.VOL_PERTURBE);
-    typeInto(sub1, CONFIG.SUBTITLE_TEXT_1, ()=>{
-      growTorch(CONFIG.TORCH_RADIUS, CONFIG.TORCH_GROW_DURATION);
-      setTimeout(()=>{document.getElementById('hint').classList.add('visible');},CONFIG.TORCH_HINT_DELAY);
-      setTimeout(()=>fadeOutEl(sndPerturbe,CONFIG.FADE_NARR_OUT),500);
-
-      hideEl(sub1,CONFIG.SUBTITLE_HOLD_1,()=>{
-        setTimeout(()=>{
-          fadeInNarr(sndCandice,CONFIG.FADE_NARR_IN,CONFIG.VOL_CANDICE);
-          typeInto(sub2, CONFIG.SUBTITLE_TEXT_2, ()=>{
-            setTimeout(()=>fadeOutEl(sndCandice,CONFIG.FADE_NARR_OUT),900);
-            hideEl(sub2,CONFIG.SUBTITLE_HOLD_2,()=>{
-              setTimeout(()=>{
-                fadeInNarr(sndDelicat,CONFIG.FADE_NARR_IN,CONFIG.VOL_DELICAT);
-                typeInto(sub3, CONFIG.SUBTITLE_TEXT_3, ()=>{
-                  setTimeout(()=>fadeOutEl(sndDelicat,CONFIG.FADE_NARR_OUT),1000);
-                  hideEl(sub3,CONFIG.SUBTITLE_HOLD_3,()=>{
-                    setTimeout(()=>{
-                      fadeInNarr(sndPratique,CONFIG.FADE_NARR_IN,CONFIG.VOL_PRATIQUE);
-                      typeInto(sub4, CONFIG.SUBTITLE_TEXT_4, ()=>{
-                        setTimeout(()=>fadeOutEl(sndPratique,CONFIG.FADE_NARR_OUT),1000);
-                        hideEl(sub4,CONFIG.SUBTITLE_HOLD_4,null);
-                      });
-                    },CONFIG.SILENCE_BETWEEN_3_4);
-                  });
-                });
-              },CONFIG.SILENCE_BETWEEN_2_3);
-            });
-          });
-        },CONFIG.SILENCE_BETWEEN_1_2);
-      });
-    });
-  },CONFIG.SILENCE_BEFORE_SEQ);
+function isFullscreen(){
+  return !!(document.fullscreenElement || document.webkitFullscreenElement
+          || document.mozFullScreenElement || document.msFullscreenElement);
+}
+function enterFullscreen(){
+  var el = document.documentElement;
+  if     (el.requestFullscreen)       el.requestFullscreen();
+  else if(el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+  else if(el.mozRequestFullScreen)    el.mozRequestFullScreen();
+  else if(el.msRequestFullscreen)     el.msRequestFullscreen();
+}
+function leaveFullscreen(){
+  if     (document.exitFullscreen)       document.exitFullscreen();
+  else if(document.webkitExitFullscreen) document.webkitExitFullscreen();
+  else if(document.mozCancelFullScreen)  document.mozCancelFullScreen();
+  else if(document.msExitFullscreen)     document.msExitFullscreen();
 }
 
-startScreen.addEventListener('click',startExperience);
-startScreen.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' ')startExperience();});
+function syncFsButton(){
+  var fs = isFullscreen();
+  document.getElementById('icon-fs-enter').style.display = fs ? 'none'  : 'block';
+  document.getElementById('icon-fs-exit').style.display  = fs ? 'block' : 'none';
+  document.getElementById('btn-fs').title = fs ? 'Quitter le plein écran' : 'Plein écran';
+}
+document.addEventListener('fullscreenchange',       syncFsButton);
+document.addEventListener('webkitfullscreenchange', syncFsButton);
+document.addEventListener('mozfullscreenchange',    syncFsButton);
+document.addEventListener('MSFullscreenChange',     syncFsButton);
+
+document.getElementById('btn-fs').addEventListener('click', function(){
+  if(isFullscreen()) leaveFullscreen(); else enterFullscreen();
+});
+
+/* Bloquer le menu contextuel sur la vidéo */
+document.getElementById('bgVideo').addEventListener('contextmenu', function(e){ e.preventDefault(); });
+
+function startExperience(){
+  if(experienceStarted) return;
+  experienceStarted = true;
+  startScreen.style.display = 'none';
+  enterFullscreen();
+
+  revealTitle();
+  startPublicLoop();
+  loadBuffer('chuchotement.wav').then(function(buf){ whisperBuffer=buf; scheduleWhispers(); });
+
+  setTimeout(function(){
+    var sub4 = document.getElementById('subtitle-4');
+
+    fadeInNarr(sndPerturbe, CONFIG.FADE_NARR_IN, CONFIG.VOL_PERTURBE);
+    typeInto(sub1, CONFIG.SUBTITLE_TEXT_1, function(){
+      growTorch(CONFIG.TORCH_RADIUS, CONFIG.TORCH_GROW_DURATION);
+      setTimeout(function(){ document.getElementById('hint').classList.add('visible'); }, CONFIG.TORCH_HINT_DELAY);
+      setTimeout(function(){ fadeOutEl(sndPerturbe, CONFIG.FADE_NARR_OUT); }, 500);
+
+      hideEl(sub1, CONFIG.SUBTITLE_HOLD_1, function(){
+        setTimeout(function(){
+          fadeInNarr(sndCandice, CONFIG.FADE_NARR_IN, CONFIG.VOL_CANDICE);
+          typeInto(sub2, CONFIG.SUBTITLE_TEXT_2, function(){
+            setTimeout(function(){ fadeOutEl(sndCandice, CONFIG.FADE_NARR_OUT); }, 900);
+            hideEl(sub2, CONFIG.SUBTITLE_HOLD_2, function(){
+              setTimeout(function(){
+                fadeInNarr(sndDelicat, CONFIG.FADE_NARR_IN, CONFIG.VOL_DELICAT);
+                typeInto(sub3, CONFIG.SUBTITLE_TEXT_3, function(){
+                  setTimeout(function(){ fadeOutEl(sndDelicat, CONFIG.FADE_NARR_OUT); }, 1000);
+                  hideEl(sub3, CONFIG.SUBTITLE_HOLD_3, function(){
+                    setTimeout(function(){
+                      fadeInNarr(sndPratique, CONFIG.FADE_NARR_IN, CONFIG.VOL_PRATIQUE);
+                      typeInto(sub4, CONFIG.SUBTITLE_TEXT_4, function(){
+                        setTimeout(function(){ fadeOutEl(sndPratique, CONFIG.FADE_NARR_OUT); }, 1000);
+                        hideEl(sub4, CONFIG.SUBTITLE_HOLD_4, null);
+                      });
+                    }, CONFIG.SILENCE_BETWEEN_3_4);
+                  });
+                });
+              }, CONFIG.SILENCE_BETWEEN_2_3);
+            });
+          });
+        }, CONFIG.SILENCE_BETWEEN_1_2);
+      });
+    });
+  }, CONFIG.SILENCE_BEFORE_SEQ);
+}
+
+startScreen.addEventListener('click',   startExperience);
+startScreen.addEventListener('keydown', function(e){ if(e.key==='Enter'||e.key===' ') startExperience(); });
 </script>
 </body>
 </html>
