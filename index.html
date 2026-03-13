@@ -1033,9 +1033,13 @@ function humanDelay(c, prev){
   if(r()<0.035) return base*0.25;
   return base;
 }
+/* Flag global de pause — mis à true en portrait, false en paysage */
+var _sitePaused = false;
+
 function typeInto(el, text, onDone){
   el.textContent=''; el.style.opacity='1'; var i=0;
   function next(){
+    if(_sitePaused){ setTimeout(next, 200); return; } // attendre la reprise
     if(i>=text.length){ if(onDone) onDone(); return; }
     el.textContent += text[i];
     var d = humanDelay(text[i], text[i-1]||'');
@@ -1044,10 +1048,18 @@ function typeInto(el, text, onDone){
   next();
 }
 function hideEl(el, delay, cb){
-  setTimeout(function(){
+  var elapsed = 0, interval = 50;
+  function tick(){
+    if(_sitePaused){ setTimeout(tick, interval); return; }
+    elapsed += interval;
+    if(elapsed < delay){ setTimeout(tick, interval); return; }
     el.style.opacity='0';
-    setTimeout(function(){ el.textContent=''; if(cb) cb(); }, 800);
-  }, delay);
+    setTimeout(function(){
+      if(_sitePaused){ setTimeout(function(){ el.textContent=''; if(cb) cb(); }, 200); return; }
+      el.textContent=''; if(cb) cb();
+    }, 800);
+  }
+  tick();
 }
 
 
@@ -1320,14 +1332,12 @@ function handleOrientationChange(){
   var video = document.getElementById('bgVideo');
   var audios = document.querySelectorAll('audio');
   if(isPortrait){
-    /* Suspendre le contexte Web Audio (public loop, whispers, voix narratives) */
+    _sitePaused = true;
     if(audioCtx) audioCtx.suspend();
-    /* Mettre en pause les <audio> HTML */
-    audios.forEach(function(a){ if(!a.paused) { a._wasPlaying = true; a.pause(); } });
-    /* Mettre en pause la vidéo */
+    audios.forEach(function(a){ if(!a.paused){ a._wasPlaying = true; a.pause(); } });
     if(video && !video.paused){ video._wasPlaying = true; video.pause(); }
   } else {
-    /* Reprendre tout au retour en paysage */
+    _sitePaused = false;
     if(audioCtx) audioCtx.resume();
     audios.forEach(function(a){ if(a._wasPlaying){ a._wasPlaying = false; a.play().catch(function(){}); } });
     if(video && video._wasPlaying){ video._wasPlaying = false; video.play().catch(function(){}); }
@@ -1385,7 +1395,7 @@ if(_isTouchDevice){
     var dur = Date.now() - _ttStart;
     if(Math.sqrt(dx*dx + dy*dy) < 14 && dur < 260){
       var tapX = t.clientX, tapY = t.clientY;
-      /* Test ellipse visages — priorité et tolérance +50% pour le doigt */
+      /* Test ellipse visages — tolérance +20% seulement pour éviter les faux positifs */
       var hitFace = false;
       if(torchBaseRadius > 5){
         var faceKeys = Object.keys(FACES);
@@ -1394,8 +1404,8 @@ if(_isTouchDevice){
           var vr  = getVideoRect();
           var fcx = vr.x + face.xPct * vr.w;
           var fcy = vr.y + face.yPct * vr.h;
-          var frx = face.rx * vr.w * 1.5;
-          var fry = face.ry * vr.h * 1.5;
+          var frx = face.rx * vr.w * 1.2;   // +20% seulement
+          var fry = face.ry * vr.h * 1.2;
           var fdx = (tapX - fcx) / frx, fdy = (tapY - fcy) / fry;
           if(fdx*fdx + fdy*fdy <= 1.0){
             var hsId = (faceKeys[k] === 'caleb') ? 'face-L2-3' : 'face-L2-6';
@@ -1405,11 +1415,14 @@ if(_isTouchDevice){
           }
         }
       }
-      /* Sinon clic DOM classique (startScreen, nav, etc.) */
+      /* Fallback DOM — mais jamais sur un .hotspot (évite double déclenchement) */
       if(!hitFace){
         var target = document.elementFromPoint(tapX, tapY);
-        if(target && target.id !== 'btn-fs')
+        if(target && target.id !== 'btn-fs'
+                  && !target.classList.contains('hotspot')
+                  && !target.closest('.hotspot')){
           target.dispatchEvent(new MouseEvent('click', { bubbles:true, cancelable:true, clientX:tapX, clientY:tapY }));
+        }
       }
     }
   }, { passive: true });
