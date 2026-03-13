@@ -202,47 +202,10 @@
     }
 
     @keyframes pulse { 0%,100%{opacity:.2} 50%{opacity:.7} }
-
-    /* ── Écran de blocage portrait (mobile) ── */
-    #portrait-lock {
-      display: none;
-      position: fixed; inset: 0; z-index: 9999;
-      background: #000;
-      flex-direction: column; align-items: center; justify-content: center;
-      gap: 32px;
-    }
-    #portrait-lock svg {
-      width: 52px; height: 52px;
-      fill: none; stroke: rgba(210,175,90,0.85);
-      stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round;
-      animation: rotate-hint 2.8s ease-in-out infinite;
-    }
-    @keyframes rotate-hint {
-      0%,35%  { transform: rotate(0deg); }
-      65%,100%{ transform: rotate(90deg); }
-    }
-    #portrait-lock p {
-      font-family: 'Cinzel', serif;
-      font-size: clamp(10px, 3.5vw, 14px);
-      letter-spacing: 0.22em; text-transform: uppercase;
-      color: rgba(255,255,255,0.5); text-align: center;
-      line-height: 1.8; padding: 0 12vw;
-    }
-    @media (orientation: portrait) {
-      #portrait-lock { display: flex; }
-    }
   </style>
 </head>
 <body>
 
-<div id="portrait-lock">
-  <svg viewBox="0 0 24 24">
-    <rect x="5" y="2" width="14" height="20" rx="2"/>
-    <line x1="9" y1="22" x2="9" y2="2"/>
-    <polyline points="6 5 9 2 12 5"/>
-  </svg>
-  <p>Veuillez pivoter<br>votre appareil à l'horizontal</p>
-</div>
 <canvas id="overlay-canvas"></canvas>
 <div id="cursor"></div>
 <div class="grain"></div>
@@ -1033,13 +996,9 @@ function humanDelay(c, prev){
   if(r()<0.035) return base*0.25;
   return base;
 }
-/* Flag global de pause — mis à true en portrait, false en paysage */
-var _sitePaused = false;
-
 function typeInto(el, text, onDone){
   el.textContent=''; el.style.opacity='1'; var i=0;
   function next(){
-    if(_sitePaused){ setTimeout(next, 200); return; } // attendre la reprise
     if(i>=text.length){ if(onDone) onDone(); return; }
     el.textContent += text[i];
     var d = humanDelay(text[i], text[i-1]||'');
@@ -1048,18 +1007,10 @@ function typeInto(el, text, onDone){
   next();
 }
 function hideEl(el, delay, cb){
-  var elapsed = 0, interval = 50;
-  function tick(){
-    if(_sitePaused){ setTimeout(tick, interval); return; }
-    elapsed += interval;
-    if(elapsed < delay){ setTimeout(tick, interval); return; }
+  setTimeout(function(){
     el.style.opacity='0';
-    setTimeout(function(){
-      if(_sitePaused){ setTimeout(function(){ el.textContent=''; if(cb) cb(); }, 200); return; }
-      el.textContent=''; if(cb) cb();
-    }, 800);
-  }
-  tick();
+    setTimeout(function(){ el.textContent=''; if(cb) cb(); }, 800);
+  }, delay);
 }
 
 
@@ -1317,125 +1268,6 @@ function startExperience(){
 
 startScreen.addEventListener('click',   startExperience);
 startScreen.addEventListener('keydown', function(e){ if(e.key==='Enter'||e.key===' ') startExperience(); });
-
-
-/* ══════════════════════════════════════════
-   PORTRAIT — pause/reprise audio (mobile)
-══════════════════════════════════════════ */
-if(window.screen && window.screen.orientation){
-  window.screen.orientation.addEventListener('change', handleOrientationChange);
-} else {
-  window.addEventListener('orientationchange', handleOrientationChange);
-}
-function handleOrientationChange(){
-  var isPortrait = window.matchMedia('(orientation: portrait)').matches;
-  var video = document.getElementById('bgVideo');
-  var audios = document.querySelectorAll('audio');
-  if(isPortrait){
-    _sitePaused = true;
-    if(audioCtx) audioCtx.suspend();
-    audios.forEach(function(a){ if(!a.paused){ a._wasPlaying = true; a.pause(); } });
-    if(video && !video.paused){ video._wasPlaying = true; video.pause(); }
-  } else {
-    _sitePaused = false;
-    if(audioCtx) audioCtx.resume();
-    audios.forEach(function(a){ if(a._wasPlaying){ a._wasPlaying = false; a.play().catch(function(){}); } });
-    if(video && video._wasPlaying){ video._wasPlaying = false; video.play().catch(function(){}); }
-  }
-}
-
-
-/* ══════════════════════════════════════════
-   TOUCH — mobile uniquement
-   • touchmove → déplace la torche
-   • tap court  → test ellipse visages, sinon clic DOM
-   • btn-fs     → son propre handler pour éviter les conflits
-══════════════════════════════════════════ */
-var _isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
-
-if(_isTouchDevice){
-
-  /* Le bouton FS doit stopper la propagation pour ne pas
-     déclencher le touchmove de la torche */
-  document.getElementById('btn-fs').addEventListener('touchend', function(e){
-    e.preventDefault();
-    e.stopPropagation();
-    if(isFullscreen()) leaveFullscreen(); else enterFullscreen();
-  }, { passive: false });
-
-  var _txStart = 0, _tyStart = 0, _ttStart = 0, _trafPending = false;
-
-  document.addEventListener('touchstart', function(e){
-    var t = e.touches[0];
-    _txStart = t.clientX; _tyStart = t.clientY; _ttStart = Date.now();
-    mouseX = t.clientX; mouseY = t.clientY;
-    cursorEl.style.left = mouseX + 'px';
-    cursorEl.style.top  = mouseY + 'px';
-    updateFaceHover();
-  }, { passive: true });
-
-  document.addEventListener('touchmove', function(e){
-    e.preventDefault();
-    var t = e.touches[0];
-    mouseX = t.clientX; mouseY = t.clientY;
-    cursorEl.style.left = mouseX + 'px';
-    cursorEl.style.top  = mouseY + 'px';
-    if(!_trafPending){
-      _trafPending = true;
-      requestAnimationFrame(function(){
-        _trafPending = false;
-        updateFaceHover();
-      });
-    }
-  }, { passive: false });
-
-  /* Coordonnées des hotspots DOM — identiques à repositionHotspots() */
-  var _hotspotDefs = [
-    { id:'face-L2-3', xPct:0.22, yPct:0.34, wPct:0.13, hPct:0.30 },
-    { id:'face-L2-6', xPct:0.33, yPct:0.34, wPct:0.13, hPct:0.30 }
-  ];
-
-  document.addEventListener('touchend', function(e){
-    var t   = e.changedTouches[0];
-    var dx  = t.clientX - _txStart, dy = t.clientY - _tyStart;
-    var dur = Date.now() - _ttStart;
-    if(Math.sqrt(dx*dx + dy*dy) < 14 && dur < 260){
-      var tapX = t.clientX, tapY = t.clientY;
-      var hitFace = false;
-
-      /* Test sur les rectangles hotspot DOM — même logique que sur ordi */
-      var vr = getVideoRect();
-      for(var k = 0; k < _hotspotDefs.length; k++){
-        var d   = _hotspotDefs[k];
-        var hx  = vr.x + d.xPct * vr.w;
-        var hy  = vr.y + d.yPct * vr.h;
-        var hw  = d.wPct * vr.w;
-        var hh  = d.hPct * vr.h;
-        /* Zone élargie de 15% pour compenser l'imprécision du doigt */
-        var margin = Math.min(hw, hh) * 0.15;
-        if(tapX >= hx - margin && tapX <= hx + hw + margin &&
-           tapY >= hy - margin && tapY <= hy + hh + margin){
-          /* Déclencher directement le click sur le hotspot */
-          var hs = document.getElementById(d.id);
-          if(hs) hs.dispatchEvent(new MouseEvent('click', { bubbles:true, cancelable:true }));
-          hitFace = true; break;
-        }
-      }
-
-      /* Fallback DOM pour les autres éléments (startScreen, nav, etc.)
-         — exclut les hotspots pour éviter tout double déclenchement */
-      if(!hitFace){
-        var target = document.elementFromPoint(tapX, tapY);
-        if(target && target.id !== 'btn-fs'
-                  && !target.classList.contains('hotspot')
-                  && !(target.closest && target.closest('.hotspot'))){
-          target.dispatchEvent(new MouseEvent('click', { bubbles:true, cancelable:true, clientX:tapX, clientY:tapY }));
-        }
-      }
-    }
-  }, { passive: true });
-
-}
 </script>
 </body>
 </html>
