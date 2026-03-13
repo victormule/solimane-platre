@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Abounaddara-CNRS-2026</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=Cinzel:wght@400;600&display=swap');
@@ -16,40 +16,6 @@
       background: #000;
       font-family: 'Cormorant Garamond', serif;
       cursor: none;
-      -webkit-tap-highlight-color: transparent;
-      touch-action: none;
-    }
-
-    /* ── Écran de blocage portrait ── */
-    #portrait-lock {
-      display: none;
-      position: fixed; inset: 0; z-index: 999;
-      background: #000;
-      flex-direction: column; align-items: center; justify-content: center;
-      gap: 32px;
-    }
-    #portrait-lock svg {
-      width: 54px; height: 54px;
-      fill: none; stroke: rgba(210,175,90,0.85);
-      stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round;
-      animation: rotate-hint 2.8s ease-in-out infinite;
-    }
-    @keyframes rotate-hint {
-      0%,35%  { transform: rotate(0deg); }
-      65%,100%{ transform: rotate(90deg); }
-    }
-    #portrait-lock p {
-      font-family: 'Cinzel', serif;
-      font-size: clamp(10px, 3.5vw, 14px);
-      letter-spacing: 0.22em; text-transform: uppercase;
-      color: rgba(255,255,255,0.5); text-align: center;
-      line-height: 1.7; padding: 0 12vw;
-    }
-    @media (orientation: portrait) {
-      #portrait-lock { display: flex; }
-      #overlay-canvas, .scene, .grain, #site-title,
-      .subtitle, .face-cartel, #nav-bar, #btn-fs,
-      #start-screen, #cursor { display: none !important; }
     }
 
     #overlay-canvas {
@@ -65,11 +31,6 @@
       pointer-events: none; z-index: 30;
       transition: width .22s ease, height .22s ease, background .22s ease,
                   box-shadow .22s ease, opacity .22s ease;
-    }
-    @media (pointer: coarse) {
-      html, body { cursor: auto; }
-      #cursor { display: none !important; }
-      .hotspot, .nav-btn-zone { cursor: pointer; }
     }
     #cursor.active {
       width: 14px; height: 14px;
@@ -241,6 +202,35 @@
     }
 
     @keyframes pulse { 0%,100%{opacity:.2} 50%{opacity:.7} }
+
+    /* ── Écran de blocage portrait (mobile) ── */
+    #portrait-lock {
+      display: none;
+      position: fixed; inset: 0; z-index: 9999;
+      background: #000;
+      flex-direction: column; align-items: center; justify-content: center;
+      gap: 32px;
+    }
+    #portrait-lock svg {
+      width: 52px; height: 52px;
+      fill: none; stroke: rgba(210,175,90,0.85);
+      stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round;
+      animation: rotate-hint 2.8s ease-in-out infinite;
+    }
+    @keyframes rotate-hint {
+      0%,35%  { transform: rotate(0deg); }
+      65%,100%{ transform: rotate(90deg); }
+    }
+    #portrait-lock p {
+      font-family: 'Cinzel', serif;
+      font-size: clamp(10px, 3.5vw, 14px);
+      letter-spacing: 0.22em; text-transform: uppercase;
+      color: rgba(255,255,255,0.5); text-align: center;
+      line-height: 1.8; padding: 0 12vw;
+    }
+    @media (orientation: portrait) {
+      #portrait-lock { display: flex; }
+    }
   </style>
 </head>
 <body>
@@ -784,15 +774,9 @@ function repositionHotspots(){
   });
 }
 
-var _dpr = Math.min(window.devicePixelRatio || 1, window.matchMedia('(pointer:coarse)').matches ? 1.5 : 2);
-
 function resizeCanvas(){
-  var W = window.innerWidth, H = window.innerHeight;
-  canvas.width  = Math.round(W * _dpr);
-  canvas.height = Math.round(H * _dpr);
-  canvas.style.width  = W + 'px';
-  canvas.style.height = H + 'px';
-  ctx.setTransform(_dpr, 0, 0, _dpr, 0, 0);
+  canvas.width  = window.innerWidth;
+  canvas.height = window.innerHeight;
   torchBaseRadius = torchProgress * torchRadiusPx();
   repositionHotspots();
   updateFaceHover();
@@ -811,59 +795,6 @@ document.addEventListener('mousemove', function(e){
   cursorEl.style.top  = mouseY + 'px';
   updateFaceHover();
 });
-
-/* ══════════════════════════════════════════
-   TOUCH — mobile
-   touchmove  → déplace la torche (throttlé via RAF)
-   tap court  → test ellipse visages en priorité, sinon clic DOM
-══════════════════════════════════════════ */
-var _touchStartX = 0, _touchStartY = 0, _touchStartT = 0, _touchRAFPending = false;
-
-document.addEventListener('touchstart', function(e){
-  var t = e.touches[0];
-  _touchStartX = t.clientX; _touchStartY = t.clientY; _touchStartT = Date.now();
-  mouseX = t.clientX; mouseY = t.clientY;
-  updateFaceHover();
-}, { passive: true });
-
-document.addEventListener('touchmove', function(e){
-  e.preventDefault();
-  var t = e.touches[0];
-  mouseX = t.clientX; mouseY = t.clientY;
-  if(!_touchRAFPending){
-    _touchRAFPending = true;
-    requestAnimationFrame(function(){ _touchRAFPending = false; updateFaceHover(); });
-  }
-}, { passive: false });
-
-document.addEventListener('touchend', function(e){
-  var t = e.changedTouches[0];
-  var dx = t.clientX - _touchStartX, dy = t.clientY - _touchStartY;
-  var dur = Date.now() - _touchStartT;
-  if(Math.sqrt(dx*dx+dy*dy) < 14 && dur < 260){
-    var tapX = t.clientX, tapY = t.clientY;
-    /* Test direct sur les ellipses visages — plus fiable que le DOM sur mobile */
-    var hitFace = false;
-    var faceKeys = Object.keys(FACES);
-    for(var k = 0; k < faceKeys.length; k++){
-      var face = FACES[faceKeys[k]];
-      var vr = getVideoRect();
-      var fcx = vr.x + face.xPct * vr.w, fcy = vr.y + face.yPct * vr.h;
-      var frx = face.rx * vr.w * 1.5, fry = face.ry * vr.h * 1.5; // +50% tolérance doigt
-      var fdx = (tapX - fcx)/frx, fdy = (tapY - fcy)/fry;
-      if(fdx*fdx + fdy*fdy <= 1.0){
-        var hsId = (faceKeys[k] === 'caleb') ? 'face-L2-3' : 'face-L2-6';
-        var hs = document.getElementById(hsId);
-        if(hs) hs.dispatchEvent(new MouseEvent('click', { bubbles:true, cancelable:true }));
-        hitFace = true; break;
-      }
-    }
-    if(!hitFace){
-      var target = document.elementFromPoint(tapX, tapY);
-      if(target) target.dispatchEvent(new MouseEvent('click', { bubbles:true, cancelable:true, clientX:tapX, clientY:tapY }));
-    }
-  }
-}, { passive: true });
 
 var O = {
   b1:{s:0.00044,p:Math.random()*6.28,a:0.062}, b2:{s:0.00071,p:Math.random()*6.28,a:0.038},
@@ -928,15 +859,7 @@ function growTorch(targetFraction, durationMs){
   requestAnimationFrame(step);
 }
 
-var _lastMX = -9999, _lastMY = -9999, _lastR = -1;
-(function loop(t){
-  requestAnimationFrame(loop);
-  var moved = Math.abs(mouseX-_lastMX)>0.4 || Math.abs(mouseY-_lastMY)>0.4;
-  var rChanged = Math.abs(torchBaseRadius-_lastR)>0.3;
-  if(!moved && !rChanged && torchBaseRadius < 1) return;
-  _lastMX=mouseX; _lastMY=mouseY; _lastR=torchBaseRadius;
-  renderTorch(t);
-})();
+(function loop(t){ renderTorch(t); requestAnimationFrame(loop); })();
 
 
 /* ══════════════════════════════════════════
@@ -1334,8 +1257,7 @@ function startExperience(){
   if(experienceStarted) return;
   experienceStarted = true;
   startScreen.style.display = 'none';
-  /* Sur mobile tactile, fullscreen cause des bugs d'affichage — bouton dispo à la place */
-  if(!window.matchMedia('(pointer: coarse)').matches) enterFullscreen();
+  enterFullscreen();
 
   revealTitle();
   startPublicLoop();
@@ -1383,6 +1305,103 @@ function startExperience(){
 
 startScreen.addEventListener('click',   startExperience);
 startScreen.addEventListener('keydown', function(e){ if(e.key==='Enter'||e.key===' ') startExperience(); });
+
+
+/* ══════════════════════════════════════════
+   PORTRAIT — pause/reprise audio (mobile)
+══════════════════════════════════════════ */
+if(window.screen && window.screen.orientation){
+  window.screen.orientation.addEventListener('change', handleOrientationChange);
+} else {
+  window.addEventListener('orientationchange', handleOrientationChange);
+}
+function handleOrientationChange(){
+  var isPortrait = window.matchMedia('(orientation: portrait)').matches;
+  if(!audioCtx) return;
+  if(isPortrait){
+    audioCtx.suspend();
+  } else {
+    audioCtx.resume();
+  }
+}
+
+
+/* ══════════════════════════════════════════
+   TOUCH — mobile uniquement
+   • touchmove → déplace la torche
+   • tap court  → test ellipse visages, sinon clic DOM
+   • btn-fs     → son propre handler pour éviter les conflits
+══════════════════════════════════════════ */
+var _isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+
+if(_isTouchDevice){
+
+  /* Le bouton FS doit stopper la propagation pour ne pas
+     déclencher le touchmove de la torche */
+  document.getElementById('btn-fs').addEventListener('touchend', function(e){
+    e.preventDefault();
+    e.stopPropagation();
+    if(isFullscreen()) leaveFullscreen(); else enterFullscreen();
+  }, { passive: false });
+
+  var _txStart = 0, _tyStart = 0, _ttStart = 0, _trafPending = false;
+
+  document.addEventListener('touchstart', function(e){
+    var t = e.touches[0];
+    _txStart = t.clientX; _tyStart = t.clientY; _ttStart = Date.now();
+    mouseX = t.clientX; mouseY = t.clientY;
+    updateFaceHover();
+  }, { passive: true });
+
+  document.addEventListener('touchmove', function(e){
+    e.preventDefault();
+    var t = e.touches[0];
+    mouseX = t.clientX; mouseY = t.clientY;
+    if(!_trafPending){
+      _trafPending = true;
+      requestAnimationFrame(function(){
+        _trafPending = false;
+        updateFaceHover();
+      });
+    }
+  }, { passive: false });
+
+  document.addEventListener('touchend', function(e){
+    var t  = e.changedTouches[0];
+    var dx = t.clientX - _txStart, dy = t.clientY - _tyStart;
+    var dur = Date.now() - _ttStart;
+    if(Math.sqrt(dx*dx + dy*dy) < 14 && dur < 260){
+      var tapX = t.clientX, tapY = t.clientY;
+      /* Test ellipse visages — priorité et tolérance +50% pour le doigt */
+      var hitFace = false;
+      if(torchBaseRadius > 5){
+        var faceKeys = Object.keys(FACES);
+        for(var k = 0; k < faceKeys.length; k++){
+          var face = FACES[faceKeys[k]];
+          var vr  = getVideoRect();
+          var fcx = vr.x + face.xPct * vr.w;
+          var fcy = vr.y + face.yPct * vr.h;
+          var frx = face.rx * vr.w * 1.5;
+          var fry = face.ry * vr.h * 1.5;
+          var fdx = (tapX - fcx) / frx, fdy = (tapY - fcy) / fry;
+          if(fdx*fdx + fdy*fdy <= 1.0){
+            var hsId = (faceKeys[k] === 'caleb') ? 'face-L2-3' : 'face-L2-6';
+            var hs = document.getElementById(hsId);
+            if(hs) hs.dispatchEvent(new MouseEvent('click', { bubbles:true, cancelable:true }));
+            hitFace = true; break;
+          }
+        }
+      }
+      /* Sinon clic DOM classique (startScreen, nav, etc.) */
+      if(!hitFace){
+        var target = document.elementFromPoint(tapX, tapY);
+        if(target && target.id !== 'btn-fs')
+          target.dispatchEvent(new MouseEvent('click', { bubbles:true, cancelable:true, clientX:tapX, clientY:tapY }));
+      }
+    }
+  }, { passive: true });
+
+}
 </script>
 </body>
 </html>
