@@ -1389,38 +1389,46 @@ if(_isTouchDevice){
     }
   }, { passive: false });
 
+  /* Coordonnées des hotspots DOM — identiques à repositionHotspots() */
+  var _hotspotDefs = [
+    { id:'face-L2-3', xPct:0.22, yPct:0.34, wPct:0.13, hPct:0.30 },
+    { id:'face-L2-6', xPct:0.33, yPct:0.34, wPct:0.13, hPct:0.30 }
+  ];
+
   document.addEventListener('touchend', function(e){
-    var t  = e.changedTouches[0];
-    var dx = t.clientX - _txStart, dy = t.clientY - _tyStart;
+    var t   = e.changedTouches[0];
+    var dx  = t.clientX - _txStart, dy = t.clientY - _tyStart;
     var dur = Date.now() - _ttStart;
     if(Math.sqrt(dx*dx + dy*dy) < 14 && dur < 260){
       var tapX = t.clientX, tapY = t.clientY;
-      /* Test ellipse visages — tolérance +20% seulement pour éviter les faux positifs */
       var hitFace = false;
-      if(torchBaseRadius > 5){
-        var faceKeys = Object.keys(FACES);
-        for(var k = 0; k < faceKeys.length; k++){
-          var face = FACES[faceKeys[k]];
-          var vr  = getVideoRect();
-          var fcx = vr.x + face.xPct * vr.w;
-          var fcy = vr.y + face.yPct * vr.h;
-          var frx = face.rx * vr.w * 1.2;   // +20% seulement
-          var fry = face.ry * vr.h * 1.2;
-          var fdx = (tapX - fcx) / frx, fdy = (tapY - fcy) / fry;
-          if(fdx*fdx + fdy*fdy <= 1.0){
-            var hsId = (faceKeys[k] === 'caleb') ? 'face-L2-3' : 'face-L2-6';
-            var hs = document.getElementById(hsId);
-            if(hs) hs.dispatchEvent(new MouseEvent('click', { bubbles:true, cancelable:true }));
-            hitFace = true; break;
-          }
+
+      /* Test sur les rectangles hotspot DOM — même logique que sur ordi */
+      var vr = getVideoRect();
+      for(var k = 0; k < _hotspotDefs.length; k++){
+        var d   = _hotspotDefs[k];
+        var hx  = vr.x + d.xPct * vr.w;
+        var hy  = vr.y + d.yPct * vr.h;
+        var hw  = d.wPct * vr.w;
+        var hh  = d.hPct * vr.h;
+        /* Zone élargie de 15% pour compenser l'imprécision du doigt */
+        var margin = Math.min(hw, hh) * 0.15;
+        if(tapX >= hx - margin && tapX <= hx + hw + margin &&
+           tapY >= hy - margin && tapY <= hy + hh + margin){
+          /* Déclencher directement le click sur le hotspot */
+          var hs = document.getElementById(d.id);
+          if(hs) hs.dispatchEvent(new MouseEvent('click', { bubbles:true, cancelable:true }));
+          hitFace = true; break;
         }
       }
-      /* Fallback DOM — mais jamais sur un .hotspot (évite double déclenchement) */
+
+      /* Fallback DOM pour les autres éléments (startScreen, nav, etc.)
+         — exclut les hotspots pour éviter tout double déclenchement */
       if(!hitFace){
         var target = document.elementFromPoint(tapX, tapY);
         if(target && target.id !== 'btn-fs'
                   && !target.classList.contains('hotspot')
-                  && !target.closest('.hotspot')){
+                  && !(target.closest && target.closest('.hotspot'))){
           target.dispatchEvent(new MouseEvent('click', { bubbles:true, cancelable:true, clientX:tapX, clientY:tapY }));
         }
       }
