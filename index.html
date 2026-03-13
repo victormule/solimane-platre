@@ -1317,11 +1317,20 @@ if(window.screen && window.screen.orientation){
 }
 function handleOrientationChange(){
   var isPortrait = window.matchMedia('(orientation: portrait)').matches;
-  if(!audioCtx) return;
+  var video = document.getElementById('bgVideo');
+  var audios = document.querySelectorAll('audio');
   if(isPortrait){
-    audioCtx.suspend();
+    /* Suspendre le contexte Web Audio (public loop, whispers, voix narratives) */
+    if(audioCtx) audioCtx.suspend();
+    /* Mettre en pause les <audio> HTML */
+    audios.forEach(function(a){ if(!a.paused) { a._wasPlaying = true; a.pause(); } });
+    /* Mettre en pause la vidéo */
+    if(video && !video.paused){ video._wasPlaying = true; video.pause(); }
   } else {
-    audioCtx.resume();
+    /* Reprendre tout au retour en paysage */
+    if(audioCtx) audioCtx.resume();
+    audios.forEach(function(a){ if(a._wasPlaying){ a._wasPlaying = false; a.play().catch(function(){}); } });
+    if(video && video._wasPlaying){ video._wasPlaying = false; video.play().catch(function(){}); }
   }
 }
 
@@ -1350,6 +1359,8 @@ if(_isTouchDevice){
     var t = e.touches[0];
     _txStart = t.clientX; _tyStart = t.clientY; _ttStart = Date.now();
     mouseX = t.clientX; mouseY = t.clientY;
+    cursorEl.style.left = mouseX + 'px';
+    cursorEl.style.top  = mouseY + 'px';
     updateFaceHover();
   }, { passive: true });
 
@@ -1357,6 +1368,8 @@ if(_isTouchDevice){
     e.preventDefault();
     var t = e.touches[0];
     mouseX = t.clientX; mouseY = t.clientY;
+    cursorEl.style.left = mouseX + 'px';
+    cursorEl.style.top  = mouseY + 'px';
     if(!_trafPending){
       _trafPending = true;
       requestAnimationFrame(function(){
