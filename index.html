@@ -102,8 +102,8 @@
     }
     #subtitle-1 { left: 5vw;  bottom: 9vh; }
     #subtitle-2 { right: 5vw; top: 9vh; text-align: right; }
-    #subtitle-3 { left: 58vw; top: 62vh; max-width: 36ch; }
-    #subtitle-4 { left: 5vw;  top: 38vh; max-width: 40ch; }
+    #subtitle-3 { left: 58vw; top: 44vh; max-width: 36ch; }
+    #subtitle-4 { left: 5vw;  top: 18vh; max-width: 40ch; }
 
     .hotspot {
       position: absolute; border-radius: 50%;
@@ -172,14 +172,17 @@
       animation: pulse 3s ease-in-out infinite;
     }
 
-    #hint {
-      position: fixed; bottom: 26px; left: 50%;
-      transform: translateX(-50%); font-size: 10px; letter-spacing: 0.3em;
-      color: rgba(255,255,255,0); text-transform: uppercase;
-      font-family: 'Cinzel', serif; z-index: 25; pointer-events: none;
-      transition: color 3s ease;
+    #hint { display: none; }
+
+    #nav-bar {
+      position: fixed; z-index: 22;
+      pointer-events: none;
+      left: 0; top: 0;
     }
-    #hint.visible { color: rgba(255,255,255,0.35); }
+    #nav-bar svg { overflow: visible; display: block; }
+    .nav-rect-path { fill: none; stroke-linecap: square; }
+    .nav-btn-zone  { pointer-events: auto; cursor: none; }
+    .nav-btn-label { dominant-baseline: middle; text-anchor: middle; font-weight: 300; text-transform: uppercase; }
 
     #btn-fs {
       position: fixed; bottom: 20px; right: 24px;
@@ -247,7 +250,8 @@
   </svg>
 </div>
 
-<div id="hint">Cliquez sur un visage pour connaitre son histoire</div>
+<div id="hint"></div>
+<div id="nav-bar"></div>
 <button id="btn-fs" title="Plein écran">
   <svg id="icon-fs-enter" viewBox="0 0 24 24">
     <polyline points="15 3 21 3 21 9"/>
@@ -362,9 +366,9 @@ const CONFIG = {
      ║  8. SOUS-TITRES                                      ║
      ╚══════════════════════════════════════════════════════╝ */
 
-  SUBTITLE_FONT:        'clamp(15px, 1.9vw, 30px)',
-  SUBTITLE_LINE_HEIGHT: '1.7',
-  SUBTITLE_MAX_WIDTH:   '44ch',
+  SUBTITLE_FONT:        'clamp(12px, min(2.3vw, 2.9vh), 38px)', // suit largeur ET hauteur
+  SUBTITLE_LINE_HEIGHT: '1.4',
+  SUBTITLE_MAX_WIDTH:   '52ch',
   SUBTITLE_MAX_WIDTH_3: '36ch',
   SUBTITLE_FADE:        '0.75s',
 
@@ -489,6 +493,32 @@ const CONFIG = {
   SILENCE_BETWEEN_2_3:  1800,
   SILENCE_BETWEEN_3_4:  2200,
 
+  /* ╔══════════════════════════════════════════════════════╗
+     ║  16. BARRE DE NAVIGATION (apparaît après Candice)    ║
+     ╚══════════════════════════════════════════════════════╝ */
+
+  // NAV_LEFT supprimé — la barre est centrée automatiquement
+  NAV_BOTTOM:           0.015,  // bord bas     (fraction hauteur)
+  NAV_HEIGHT:           0.055,  // hauteur      (fraction hauteur)
+  NAV_MIN_HEIGHT_PX:    30,     // hauteur minimale en px (lisibilité mobile)
+  NAV_WIDTH:            0.75,   // largeur totale (fraction largeur)
+  NAV_STROKE_COLOR:     'rgba(255,255,255,0.80)',
+  NAV_STROKE_WIDTH:     0.8,
+  NAV_BG:               'rgba(0,0,0,0.0)',
+  NAV_DRAW_SPEED:       1.1,    // s — rectangle extérieur
+  NAV_SEP_SPEED:        0.5,    // s — chaque séparateur vertical
+  NAV_SEP_DELAY:        0.3,    // s — délai entre séparateurs
+  NAV_TEXT_DELAY:       0.25,   // s — délai texte après séparateur
+  NAV_TEXT_FADE:        0.4,    // s — fondu texte
+  NAV_BTN_FONT_RATIO:   0.38,  // fraction de la hauteur du rectangle (ex: 0.38 = 38% de h)
+  NAV_BTN_FONT_FAMILY:  'Cinzel, serif',
+  NAV_BTN_COLOR:        'rgba(255,255,255,0.85)',
+  NAV_BTN_COLOR_HOVER:  'rgba(255,220,120,1)',
+  NAV_BTN_LETTER_SPACING: '0.18em',
+  NAV_BTN_1:            'Carnet de Recherche',
+  NAV_BTN_2:            'Collaboration',
+  NAV_BTN_3:            'À Propos',
+
 };
 /* ══════════════════════════════════════════════════════════════
    FIN DE LA CONFIGURATION — ne pas modifier en dessous
@@ -531,10 +561,7 @@ const CONFIG = {
     grain.style.animationDuration = CONFIG.GRAIN_SPEED;
   }
 
-  var hint = document.getElementById('hint');
-  hint.textContent      = CONFIG.HINT_TEXT;
-  hint.style.fontSize   = CONFIG.HINT_FONT_SIZE;
-  hint.style.transition = 'color ' + CONFIG.HINT_FADE + ' ease';
+  /* hint supprimé */
 
   var dynStyle = document.createElement('style');
   dynStyle.textContent =
@@ -731,6 +758,46 @@ document.addEventListener('mousemove', function(e){
   cursorEl.style.top  = mouseY + 'px';
   updateFaceHover();
 });
+
+/* ══════════════════════════════════════════
+   TOUCH — mobile
+   touchmove  → déplace la torche
+   tap court  → déclenche un clic sur l'élément sous le doigt
+══════════════════════════════════════════ */
+var _touchStartX = 0, _touchStartY = 0, _touchStartT = 0;
+
+document.addEventListener('touchstart', function(e){
+  var t = e.touches[0];
+  _touchStartX = t.clientX;
+  _touchStartY = t.clientY;
+  _touchStartT = Date.now();
+  mouseX = t.clientX; mouseY = t.clientY;
+  cursorEl.style.left = mouseX + 'px';
+  cursorEl.style.top  = mouseY + 'px';
+  updateFaceHover();
+}, { passive: true });
+
+document.addEventListener('touchmove', function(e){
+  e.preventDefault(); // bloque le scroll page
+  var t = e.touches[0];
+  mouseX = t.clientX; mouseY = t.clientY;
+  cursorEl.style.left = mouseX + 'px';
+  cursorEl.style.top  = mouseY + 'px';
+  updateFaceHover();
+}, { passive: false });
+
+document.addEventListener('touchend', function(e){
+  var t = e.changedTouches[0];
+  var dx = t.clientX - _touchStartX;
+  var dy = t.clientY - _touchStartY;
+  var dist = Math.sqrt(dx*dx + dy*dy);
+  var dur  = Date.now() - _touchStartT;
+  // Tap court = pas de glissement + durée < 220ms → simuler un clic
+  if(dist < 12 && dur < 220){
+    var target = document.elementFromPoint(t.clientX, t.clientY);
+    if(target) target.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, clientX: t.clientX, clientY: t.clientY }));
+  }
+}, { passive: true });
 
 var O = {
   b1:{s:0.00044,p:Math.random()*6.28,a:0.062}, b2:{s:0.00071,p:Math.random()*6.28,a:0.038},
@@ -1014,6 +1081,143 @@ function revealTitle(){
 
 
 /* ══════════════════════════════════════════
+   BARRE DE NAVIGATION — SVG animé
+══════════════════════════════════════════ */
+var _navBarDrawn = false; // garde pour ne pas réanimer au resize
+
+function drawNavBar(animate){
+  if(animate === undefined) animate = true;
+  var W = window.innerWidth, H = window.innerHeight;
+  var h  = Math.max(CONFIG.NAV_MIN_HEIGHT_PX, CONFIG.NAV_HEIGHT * H);
+  var w  = CONFIG.NAV_WIDTH  * W;
+  var x  = (W - w) / 2;          // centré horizontalement
+  var y  = H - CONFIG.NAV_BOTTOM * H - h;
+  var sw = CONFIG.NAV_STROKE_WIDTH;
+  var sc = CONFIG.NAV_STROKE_COLOR;
+  var labels = [CONFIG.NAV_BTN_1, CONFIG.NAV_BTN_2, CONFIG.NAV_BTN_3];
+  var N = labels.length;
+  var perim = 2 * (w + h);
+
+  var svgNS = 'http://www.w3.org/2000/svg';
+  var svg = document.createElementNS(svgNS, 'svg');
+  svg.setAttribute('width', W); svg.setAttribute('height', H);
+
+  // Fond
+  var bg = document.createElementNS(svgNS, 'rect');
+  bg.setAttribute('x', x); bg.setAttribute('y', y);
+  bg.setAttribute('width', w); bg.setAttribute('height', h);
+  bg.setAttribute('fill', CONFIG.NAV_BG);
+  svg.appendChild(bg);
+
+  // Rectangle extérieur
+  var outerRect = document.createElementNS(svgNS, 'rect');
+  outerRect.setAttribute('class', 'nav-rect-path');
+  outerRect.setAttribute('x', x); outerRect.setAttribute('y', y);
+  outerRect.setAttribute('width', w); outerRect.setAttribute('height', h);
+  outerRect.setAttribute('stroke', sc); outerRect.setAttribute('stroke-width', sw);
+  outerRect.style.strokeDasharray  = perim;
+  outerRect.style.strokeDashoffset = perim;
+  outerRect.style.transition = animate ? ('stroke-dashoffset ' + CONFIG.NAV_DRAW_SPEED + 's cubic-bezier(0.4,0,0.2,1) 0s') : 'none';
+  svg.appendChild(outerRect);
+
+  // Séparateurs verticaux (1 de moins que N boutons)
+  var seps = [];
+  for(var i = 1; i < N; i++){
+    var sx = x + i * w / N;
+    var sep = document.createElementNS(svgNS, 'line');
+    sep.setAttribute('class', 'nav-rect-path');
+    sep.setAttribute('x1', sx); sep.setAttribute('y1', y);
+    sep.setAttribute('x2', sx); sep.setAttribute('y2', y + h);
+    sep.setAttribute('stroke', sc); sep.setAttribute('stroke-width', sw);
+    sep.style.strokeDasharray  = h;
+    sep.style.strokeDashoffset = h;
+    var sepT = CONFIG.NAV_DRAW_SPEED + (i - 1) * CONFIG.NAV_SEP_DELAY;
+    sep.style.transition = animate ? ('stroke-dashoffset ' + CONFIG.NAV_SEP_SPEED + 's cubic-bezier(0.4,0,0.2,1) ' + sepT + 's') : 'none';
+    svg.appendChild(sep);
+    seps.push(sep);
+  }
+
+  // Textes
+  var txts = [];
+  labels.forEach(function(label, i){
+    var cx  = x + (i + 0.5) * w / N;
+    var cy  = y + h / 2;
+    var txt = document.createElementNS(svgNS, 'text');
+    txt.setAttribute('class', 'nav-btn-label');
+    txt.setAttribute('x', cx); txt.setAttribute('y', cy);
+    txt.setAttribute('fill', CONFIG.NAV_BTN_COLOR);
+    txt.setAttribute('font-family', CONFIG.NAV_BTN_FONT_FAMILY);
+    // Taille de police : commence par h * ratio, sera ajustée après injection dans le DOM
+    txt.setAttribute('font-size', Math.round(h * CONFIG.NAV_BTN_FONT_RATIO) + 'px');
+    txt.setAttribute('letter-spacing', CONFIG.NAV_BTN_LETTER_SPACING);
+    txt.textContent = label;
+    var txtT = CONFIG.NAV_DRAW_SPEED + i * CONFIG.NAV_SEP_DELAY + CONFIG.NAV_TEXT_DELAY;
+    txt.style.opacity    = '0';
+    txt.style.transition = animate ? ('opacity ' + CONFIG.NAV_TEXT_FADE + 's ease ' + txtT + 's') : 'none';
+    svg.appendChild(txt);
+    txts.push(txt);
+
+    // Zone hover/clic transparente
+    var zone = document.createElementNS(svgNS, 'rect');
+    zone.setAttribute('class', 'nav-btn-zone');
+    zone.setAttribute('x', x + i * w / N);
+    zone.setAttribute('y', y);
+    zone.setAttribute('width', w / N); zone.setAttribute('height', h);
+    zone.setAttribute('fill', 'transparent');
+    zone.addEventListener('mouseenter', function(){ txt.setAttribute('fill', CONFIG.NAV_BTN_COLOR_HOVER); });
+    zone.addEventListener('mouseleave', function(){ txt.setAttribute('fill', CONFIG.NAV_BTN_COLOR); });
+    zone.addEventListener('click', function(){ console.log('Nav clic:', label); });
+    svg.appendChild(zone);
+  });
+
+  // Injecter dans le DOM
+  var bar = document.getElementById('nav-bar');
+  bar.innerHTML = '';
+  bar.style.width  = W + 'px';
+  bar.style.height = H + 'px';
+  bar.appendChild(svg);
+
+  // Police unifiée : on cherche la taille qui fait tenir le texte le plus long,
+  // puis on applique cette même taille à tous les boutons (cohérence esthétique)
+  var cellW = w / N;
+  var padding = cellW * 0.10; // 10% de marge de chaque côté
+  var maxW = cellW - padding * 2;
+  var unifiedFs = parseFloat(txts[0].getAttribute('font-size')); // taille de départ
+  // 1. Trouver la taille minimale qui fait tenir chaque texte
+  txts.forEach(function(txt){
+    var fs = unifiedFs;
+    while(txt.getComputedTextLength() > maxW && fs > 6){
+      fs -= 0.5;
+      txt.setAttribute('font-size', fs + 'px');
+    }
+    if(fs < unifiedFs) unifiedFs = fs;
+  });
+  // 2. Appliquer cette taille à tous pour l'uniformité
+  txts.forEach(function(txt){
+    txt.setAttribute('font-size', unifiedFs + 'px');
+  });
+
+  // Déclencher les animations (ou affichage immédiat au resize)
+  if(animate){
+    setTimeout(function(){
+      outerRect.style.strokeDashoffset = '0';
+      seps.forEach(function(s){ s.style.strokeDashoffset = '0'; });
+      txts.forEach(function(t){ t.style.opacity = '1'; });
+    }, 40);
+  } else {
+    outerRect.style.strokeDashoffset = '0';
+    seps.forEach(function(s){ s.style.strokeDashoffset = '0'; });
+    txts.forEach(function(t){ t.style.opacity = '1'; });
+  }
+  _navBarDrawn = true;
+}
+
+// Redessiner sans animation au redimensionnement si la barre est déjà visible
+window.addEventListener('resize', function(){
+  if(_navBarDrawn) drawNavBar(false);
+});
+
+/* ══════════════════════════════════════════
    SÉQUENCE PRINCIPALE
 ══════════════════════════════════════════ */
 function isFullscreen(){
@@ -1068,7 +1272,7 @@ function startExperience(){
     fadeInNarr(sndPerturbe, CONFIG.FADE_NARR_IN, CONFIG.VOL_PERTURBE);
     typeInto(sub1, CONFIG.SUBTITLE_TEXT_1, function(){
       growTorch(CONFIG.TORCH_RADIUS, CONFIG.TORCH_GROW_DURATION);
-      setTimeout(function(){ document.getElementById('hint').classList.add('visible'); }, CONFIG.TORCH_HINT_DELAY);
+      /* hint supprimé */
       setTimeout(function(){ fadeOutEl(sndPerturbe, CONFIG.FADE_NARR_OUT); }, 500);
 
       hideEl(sub1, CONFIG.SUBTITLE_HOLD_1, function(){
@@ -1077,6 +1281,8 @@ function startExperience(){
           typeInto(sub2, CONFIG.SUBTITLE_TEXT_2, function(){
             setTimeout(function(){ fadeOutEl(sndCandice, CONFIG.FADE_NARR_OUT); }, 900);
             hideEl(sub2, CONFIG.SUBTITLE_HOLD_2, function(){
+              drawNavBar();
+
               setTimeout(function(){
                 fadeInNarr(sndDelicat, CONFIG.FADE_NARR_IN, CONFIG.VOL_DELICAT);
                 typeInto(sub3, CONFIG.SUBTITLE_TEXT_3, function(){
