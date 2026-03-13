@@ -895,6 +895,7 @@ function startPublicLoop(){
 }
 
 function spawnWhisper(){
+  if(_sitePaused) return;
   var ac = getCtx();
   if(!whisperBuffer) return;
   var src  = ac.createBufferSource(); src.buffer = whisperBuffer; src.loop = false;
@@ -945,6 +946,7 @@ function duckAmbient(doDuck, durationMs){
 }
 
 function fadeInNarr(el, ms, vol){
+  if(_sitePaused) return;
   var startVol  = videoPlaying ? CONFIG.VOL_DUCK_NARR : 0;
   var targetVol = videoPlaying ? CONFIG.VOL_DUCK_NARR : vol;
   el.volume = startVol;
@@ -963,6 +965,7 @@ var sndDelicat  = document.getElementById('snd-delicat');
 var sndPratique = document.getElementById('snd-pratique');
 
 function fadeInEl(el, ms, vol){
+  if(_sitePaused) return;
   el.volume=0; el.play().catch(function(){});
   var steps=50, step=vol/steps, n=0;
   var ti = setInterval(function(){
@@ -1002,6 +1005,7 @@ document.querySelectorAll('.hotspot').forEach(function(hotspot){
   var end   = parseFloat(hotspot.dataset.end);
   if(isNaN(start)||isNaN(end)) return;
   hotspot.addEventListener('click', function(){
+    if(_sitePaused) return;
     if(torchBaseRadius < 5) return;
     if(videoPlaying && activeHotspot === hotspot){ stopVideo(); return; }
     returning=false; activeEnd=end; activeHotspot=hotspot; videoPlaying=true;
@@ -1054,10 +1058,12 @@ function hideEl(el, delay, cb){
     elapsed += interval;
     if(elapsed < delay){ setTimeout(tick, interval); return; }
     el.style.opacity='0';
-    setTimeout(function(){
-      if(_sitePaused){ setTimeout(function(){ el.textContent=''; if(cb) cb(); }, 200); return; }
+    // Attendre la fin du fondu ET que le site soit en paysage avant d'appeler cb
+    function waitFade(){
+      if(_sitePaused){ setTimeout(waitFade, 100); return; }
       el.textContent=''; if(cb) cb();
-    }, 800);
+    }
+    setTimeout(waitFade, 800);
   }
   tick();
 }
